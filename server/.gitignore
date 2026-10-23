@@ -1,0 +1,17 @@
+node_modules/
+
+# Uploaded media (keep the folder itself)
+uploads/*
+!uploads/.gitkeep
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

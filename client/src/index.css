@@ -1,0 +1,322 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ Wchat theme
+ * Signature electric blue #245BFF · deep indigo #24145B · light surface #F3F5FA
+ * ---------------------------------------------------------------------------- */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --color-wchat-50: #eef2ff;
+  --color-wchat-100: #dde5ff;
+  --color-wchat-200: #bccaff;
+  --color-wchat-300: #93a6ff;
+  --color-wchat-400: #5c7bff;
+  --color-wchat: #245bff;
+  --color-wchat-600: #1b47cc;
+  --color-wchat-700: #16379c;
+
+  --color-ink-50: #efeafd;
+  --color-ink-100: #d7cdf6;
+  --color-ink-400: #4f3ba0;
+  --color-ink: #24145b;
+  --color-ink-900: #170c3d;
+
+  --color-surface: #f3f5fa;
+  --color-surface-2: #ffffff;
+  --color-line: #e4e8f2;
+
+  /* The chat surfaces were originally built with the `amber` accent scale.
+     Remapping those tokens to the Wchat blues rebrands every existing screen
+     in one place (class names unchanged, colour becomes Wchat). */
+  --color-amber-50: #eef2ff;
+  --color-amber-100: #dde5ff;
+  --color-amber-200: #bccaff;
+  --color-amber-300: #5c7bff;
+  --color-amber-400: #245bff;
+  --color-amber-500: #1b47cc;
+  --color-amber-600: #16379c;
+  --color-amber-700: #24145b;
+  --color-amber-800: #1c1047;
+  --color-amber-900: #170c3d;
+  --color-amber-950: #12092e;
+}
+
+/* -------------------------------------------------------------------- themes
+ * Wchat's default appearance is the **brand light** theme (surface #F3F5FA,
+ * electric blue accent). "Dark" and "Midnight" are opt-in from
+ * Settings → Appearance.
+ *
+ * Every Tailwind surface/text utility compiles to these `--color-*` variables,
+ * so re-mapping them here restyles every screen at once (no class changes).
+ * These blocks are intentionally *unlayered*, so they override Tailwind's
+ * layered `@theme` defaults.
+ * -------------------------------------------------------------------------- */
+
+/* Default: Wchat brand light ------------------------------------------------ */
+:root {
+  --color-zinc-950: #f3f5fa; /* page background */
+  --color-zinc-900: #ffffff; /* panels / cards */
+  --color-zinc-800: #e4e8f2; /* borders / chips */
+  --color-zinc-700: #d3d9ea;
+  --color-zinc-600: #8a93ad; /* muted */
+  --color-zinc-500: #6b7488;
+  --color-zinc-400: #55607a; /* secondary text */
+  --color-zinc-300: #333c55;
+  --color-zinc-200: #1e2540;
+  --color-zinc-100: #12172b; /* primary text */
+  --color-slate-700: #e9ecf5; /* chat bubbles (incoming) */
+  --color-slate-50: #12172b;
+  --color-slate-300: #55607a;
+  --color-slate-400: #6b7488;
+  --color-sky-400: #1b47cc;
+  color-scheme: light;
+}
+
+/* Dark (Tailwind's stock zinc scale) -------------------------------------- */
+html[data-theme='dark'] {
+  --color-zinc-950: #09090b;
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-600: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-100: #f4f4f5;
+  --color-slate-700: #334155;
+  --color-slate-50: #f8fafc;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-sky-400: #38bdf8;
+  color-scheme: dark;
+}
+
+/* Midnight (deep indigo night mode) --------------------------------------- */
+html[data-theme='midnight'] {
+  --color-zinc-950: #0a0616;
+  --color-zinc-900: #150d2b;
+  --color-zinc-800: #241848;
+  --color-zinc-700: #2f2160;
+  --color-zinc-600: #6f66a0;
+  --color-zinc-500: #8b83b8;
+  --color-zinc-400: #a9a2cf;
+  --color-zinc-300: #cfc9ea;
+  --color-zinc-200: #e6e2f7;
+  --color-zinc-100: #f4f2ff;
+  --color-slate-700: #2a1c52;
+  --color-slate-50: #f4f2ff;
+  --color-slate-300: #cfc9ea;
+  --color-slate-400: #a9a2cf;
+  --color-amber-400: #6b5bff;
+  --color-amber-300: #93a6ff;
+  --color-amber-500: #4f3fd1;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-zinc-950, #f3f5fa);
+  color: var(--color-zinc-100, #24145b);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* ---------------------------------------------------------------- scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9d0e3;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aeb7d0;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-zinc-700) transparent;
+}
+
+/* ------------------------------------------------------------------ helpers */
+@layer utilities {
+  /* Mobile safe areas (notches, home indicator). */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
+  /* Horizontal trays that should scroll without a visible bar. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Snap rails (Stories tray, Reels). */
+  .snap-rail {
+    scroll-snap-type: x mandatory;
+  }
+  .snap-rail > * {
+    scroll-snap-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------- spinner */
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(36, 91, 255, 0.25);
+  border-top-color: #245bff;
+  border-radius: 50%;
+  animation: wchat-spin 0.7s linear infinite;
+}
+.spinner-sm {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-width: 2px;
+}
+.spinner-brand-white {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+}
+
+@keyframes wchat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ motion */
+.animate-fade-in {
+  animation: wchat-fade-in 0.18s ease-out both;
+}
+@keyframes wchat-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: wchat-scale-in 0.16s ease-out both;
+}
+@keyframes wchat-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --------------------------------------------------------------- typing dots */
+.typing-dot {
+  animation: wchat-typing 1.2s infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes wchat-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+/* ------------------------------------------------------------------ ringing */
+.animate-ring {
+  animation: wchat-ring 1.4s ease-out infinite;
+}
+@keyframes wchat-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(36, 91, 255, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(36, 91, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(36, 91, 255, 0);
+  }
+}
+
+/* --------------------------------------------------------- misc chat helpers */
+.chat-scroll {
+  background-image: radial-gradient(circle at 1px 1px, rgba(36, 20, 91, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Wchat gradient used on hero/brand surfaces */
+.wchat-gradient {
+  background-image: linear-gradient(135deg, #245bff 0%, #24145b 100%);
+}
+
+/* Field icons (used inside relatively-positioned inputs) */
+.icon-left {
+  pointer-events: none;
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a93ad;
+}
+.icon-right {
+  pointer-events: none;
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a93ad;
+}
+
+video {
+  background-color: #000;
+}
+
+audio {
+  height: 40px;
+}
