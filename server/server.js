@@ -72,7 +72,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Hosting health check (Render/Koyeb ping this to know the service is alive).
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'Wchat', uptime: process.uptime() });
-});app.get('/api/options', (req, res) => {
+});
+
+app.get('/api/options', (req, res) => {
   res.json({ categories: CATEGORIES, features: FEATURES });
 });
 
