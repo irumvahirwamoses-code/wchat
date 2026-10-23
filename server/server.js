@@ -43,9 +43,40 @@ const PORT = process.env.PORT || 5000;
 // "https://wchat.vercel.app,https://www.wchat.app". `*` allows any origin
 // (handy for preview deployments, not recommended for production).
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+// Be forgiving about the two mistakes that are easy to make in a dashboard:
+// a trailing slash ("https://wchat.vercel.app/") and a missing protocol
+// ("wchat.vercel.app"). Browsers always send the normalized origin.
+const normalizeOrigin = (value = '') => {
+  let origin = value.trim().replace(/\/+$/, '');
+  if (origin && origin !== '*' && !/^https?:\/\//i.test(origin)) {
+    origin = `https://${origin}`;
+  }
+  return origin;
+};
+
 const CLIENT_ORIGINS = CLIENT_URL.split(',')
-  .map((origin) => origin.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // same-origin requests, curl, server-to-server
+  return (
+    CLIENT_ORIGINS.includes('*') ||
+    CLIENT_ORIGINS.includes(normalizeOrigin(origin))
+  );
+};
+
+const corsOrigin = (origin, callback) => {
+  if (isAllowedOrigin(origin)) {
+    callback(null, true);
+    return;
+  }
+  console.warn(
+    `[cors] blocked origin "${origin}". Allowed: ${CLIENT_ORIGINS.join(', ')}`
+  );
+  callback(null, false);
+};
 
 const app = express();
 
@@ -57,7 +88,7 @@ app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
-    origin: CLIENT_ORIGINS.includes('*') ? true : CLIENT_ORIGINS,
+    origin: corsOrigin,
     credentials: true,
   })
 );
@@ -166,7 +197,7 @@ const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: CLIENT_ORIGINS.includes('*') ? true : CLIENT_ORIGINS,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
