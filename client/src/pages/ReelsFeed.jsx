@@ -238,6 +238,10 @@ export default function ReelsFeed({ onOpenProfile, onOpenHub, onError }) {
   const [viewerIndex, setViewerIndex] = useState(-1)
 
   useEffect(() => {
+    document.title = 'Reels | Wchat'
+  }, [])
+
+  useEffect(() => {
     const timer = setTimeout(() => setTerm(search), 400)
     return () => clearTimeout(timer)
   }, [search])

@@ -21,6 +21,10 @@ export default function JoinCirclePage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
+    document.title = 'Join Circle | Wchat'
+  }, [])
+
+  useEffect(() => {
     if (token) return
     try {
       localStorage.setItem('wchatPendingJoin', code || '')

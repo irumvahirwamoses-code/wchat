@@ -32,6 +32,10 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
 
+  useEffect(() => {
+    document.title = 'Profile | Wchat'
+  }, [])
+
   const openSocial = (which) => {
     setSocialTab(which)
     setSocialOpen(true)

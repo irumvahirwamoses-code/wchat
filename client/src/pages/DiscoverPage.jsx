@@ -606,6 +606,10 @@ function PostsTab({ onError }) {
 export default function DiscoverPage({ onOpenProfile, onOpenHub, onOpenCommunities, onError }) {
   const [tab, setTab] = useState('posts')
 
+  useEffect(() => {
+    document.title = 'Discover | Wchat'
+  }, [])
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-zinc-950">
       <header className="border-b border-zinc-800/80 px-4 py-3">

@@ -48,6 +48,10 @@ const GENDERS = [
 export default function AuthPage() {
   const [tab, setTab] = useState('register')
 
+  useEffect(() => {
+    document.title = 'Create Account | Wchat'
+  }, [])
+
   return (
     <div className="min-h-screen bg-surface">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-2">

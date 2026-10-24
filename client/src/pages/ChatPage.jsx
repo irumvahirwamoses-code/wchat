@@ -36,6 +36,10 @@ import useWebRTC from '../hooks/useWebRTC'
  */
 export default function ChatPage() {
   const { user } = useAuth()
+
+  useEffect(() => {
+    document.title = 'Messages | Wchat'
+  }, [])
   const { selectedChat, selectChat, fetchChats, notifications } = useChat()
   const {
     callState,

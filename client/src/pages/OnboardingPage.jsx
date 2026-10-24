@@ -49,6 +49,10 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(null)
   const [finishing, setFinishing] = useState(false)
 
+  useEffect(() => {
+    document.title = 'Onboarding | Wchat'
+  }, [])
+
   /* -------------------------------------------------------------- taxonomy */
   useEffect(() => {
     api

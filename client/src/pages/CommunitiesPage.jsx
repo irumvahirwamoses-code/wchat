@@ -24,6 +24,10 @@ export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onErr
   const [communities, setCommunities] = useState([])
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
+    document.title = 'Circles | Wchat'
+  }, [])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {

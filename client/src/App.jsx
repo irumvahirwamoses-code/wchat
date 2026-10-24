@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SocketProvider } from './context/SocketContext'
 import { ChatProvider } from './context/ChatContext'
+import { HelmetProvider } from './components/HelmetProvider'
 import AuthPage from './pages/AuthPage'
 import ChatPage from './pages/ChatPage'
 import JoinCirclePage from './pages/JoinCirclePage'
@@ -51,12 +52,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <ChatProvider>
-          <AppRoutes />
-        </ChatProvider>
-      </SocketProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <ChatProvider>
+            <AppRoutes />
+          </ChatProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </HelmetProvider>
   )
 }

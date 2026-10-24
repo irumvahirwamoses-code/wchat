@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /auth
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /chat/
+Disallow: /profile/
+Disallow: /onboarding/
+Disallow: /communities/
+Disallow: /discover/
+Disallow: /reels/
+Sitemap: https://wchat.vercel.app/sitemap.xml

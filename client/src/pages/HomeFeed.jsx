@@ -32,6 +32,10 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const [loading, setLoading] = useState(false)
   const [firstLoad, setFirstLoad] = useState(true)
 
+  useEffect(() => {
+    document.title = "Home Feed | Wchat"
+  }, [])
+
   const [composerOpen, setComposerOpen] = useState(false)
   const [storyComposerOpen, setStoryComposerOpen] = useState(false)
   const [activeRing, setActiveRing] = useState(null)
