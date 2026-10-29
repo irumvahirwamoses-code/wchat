@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Film, MessageCircle, Share2, Users, Zap, Play, Pause } from 'lucide-react'
+import { Film, MessageCircle, Share, Users, Zap, Play, Pause } from 'lucide-react'
 
 const SCENES = [
   {
@@ -10,7 +10,7 @@ const SCENES = [
   {
     title: 'Invite anyone in seconds',
     caption: 'Share a link or QR code. Open Circles join instantly; request Circles await approval.',
-    icon: <Share2 size={24} strokeWidth={2} />,
+    icon: <Share size={24} strokeWidth={2} />,
   },
   {
     title: 'Chat and call in real time',
