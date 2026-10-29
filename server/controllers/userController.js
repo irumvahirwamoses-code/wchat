@@ -28,7 +28,7 @@ const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * date of birth are intentionally never exposed.
  */
 const PUBLIC_PROFILE_FIELDS =
-  'firstName lastName username profilePicture bio category links accountType isPrivate showInSuggestions interests skills address gender isOnline lastSeen onboarding preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
+  'firstName lastName username profilePicture bio category links accountType isPrivate showInSuggestions interests skills isOnline lastSeen onboarding preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
 
 /**
  * GET /api/users/:id
@@ -59,12 +59,12 @@ export const searchUsers = async (req, res, next) => {
 
     if (search) {
       const regex = new RegExp(escapeRegex(search), 'i');
-      query.$or = [{ username: regex }, { firstName: regex }, { lastName: regex }, { email: regex }];
+      query.$or = [{ username: regex }, { firstName: regex }, { lastName: regex }];
     }
 
     const users = await User.find(query)
       .limit(20)
-      .select('firstName lastName username email phoneNumber profilePicture isOnline lastSeen address');
+      .select('firstName lastName username profilePicture isOnline lastSeen');
 
     return res.json(users);
   } catch (error) {

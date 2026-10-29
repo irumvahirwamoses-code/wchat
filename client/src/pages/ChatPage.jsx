@@ -6,6 +6,7 @@ import CircleHub from '../components/CircleHub'
 import CreateSheet from '../components/CreateSheet'
 import EditProfileModal from '../components/EditProfileModal'
 import GroupDiscovery from '../components/GroupDiscovery'
+import GroupInviteModal from '../components/GroupInviteModal'
 import GroupModal from '../components/GroupModal'
 import IncomingCallModal from '../components/IncomingCallModal'
 import MeetingModal from '../components/MeetingModal'
@@ -25,6 +26,8 @@ import ProfilePage from './ProfilePage'
 import ReelsFeed from './ReelsFeed'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
+import api from '../config/api'
+import Seo from '../components/Seo'
 import useWebRTC from '../hooks/useWebRTC'
 
 /**
@@ -40,7 +43,7 @@ export default function ChatPage() {
   useEffect(() => {
     document.title = 'Messages | Wchat'
   }, [])
-  const { selectedChat, selectChat, fetchChats, notifications } = useChat()
+  const { selectedChat, selectChat, fetchChats, chats, notifications } = useChat()
   const {
     callState,
     callType,
@@ -71,6 +74,10 @@ export default function ChatPage() {
   /* ------------------------------------------------------------ chat modals */
   const [groupOpen, setGroupOpen] = useState(false)
   const [groupInfoOpen, setGroupInfoOpen] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteChat, setInviteChat] = useState(null)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [manageChat, setManageChat] = useState(null)
   const [hubChat, setHubChat] = useState(null)
   const [meetingChat, setMeetingChat] = useState(null)
   const [discoveryOpen, setDiscoveryOpen] = useState(false)
@@ -159,8 +166,25 @@ export default function ChatPage() {
         return (
           <CommunitiesPage
             onOpenHub={(chat) => setHubChat(chat)}
-            onCreate={() => goTab('create')}
+            onCreate={() => setGroupOpen(true)}
             onOpenChat={openChat}
+            onInvite={async (circle) => {
+              setInviteChat(circle)
+              setInviteOpen(true)
+            }}
+            onManage={async (circle) => {
+              let found = chats.find((item) => String(item._id) === String(circle._id))
+              if (!found) {
+                try {
+                  const { data } = await api.get(`/chats/${circle._id}`)
+                  found = data
+                } catch {
+                  found = circle
+                }
+              }
+              setManageChat(found)
+              setManageOpen(true)
+            }}
           />
         )
       case 'profile':
@@ -221,6 +245,12 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-zinc-950 text-zinc-100">
+      <Seo
+        noIndex
+        path="/"
+        title="Messages | Wchat"
+        description="Your Wchat messages, Circles, and community activity. This is a private app page and is not indexed by search engines."
+      />
       <SideRail
         active={tab}
         onChange={goTab}
@@ -234,17 +264,18 @@ export default function ChatPage() {
         <MobileNav active={tab} onChange={goTab} unread={unreadTotal} />
       </div>
 
-      {createOpen ? (
-        <CreateSheet
-          onClose={() => setCreateOpen(false)}
-          onPick={(kind) => {
-            setCreateOpen(false)
-            if (kind === 'post') setShowPostComposer(true)
-            else if (kind === 'story') setShowStoryComposer(true)
-            else if (kind === 'reel') setShowReelComposer(true)
-          }}
-        />
-      ) : null}
+          {createOpen ? (
+            <CreateSheet
+              onClose={() => setCreateOpen(false)}
+              onPick={(kind) => {
+                setCreateOpen(false)
+                if (kind === 'post') setShowPostComposer(true)
+                else if (kind === 'story') setShowStoryComposer(true)
+                else if (kind === 'reel') setShowReelComposer(true)
+                else if (kind === 'community') setGroupOpen(true)
+              }}
+            />
+          ) : null}
 
       {showPostComposer ? (
         <Overlay>
@@ -280,12 +311,40 @@ export default function ChatPage() {
             setGroupOpen(false)
             fetchChats()
           }}
+          onCreated={(created) => {
+            setGroupOpen(false)
+            setInviteChat(created)
+            setInviteOpen(true)
+            fetchChats()
+          }}
+        />
+      ) : null}
+
+      {inviteOpen ? (
+        <GroupInviteModal
+          chat={inviteChat}
+          onClose={() => {
+            setInviteOpen(false)
+            setInviteChat(null)
+          }}
         />
       ) : null}
 
       {groupInfoOpen && selectedChat ? (
         <UpdateGroupModal
           onClose={() => setGroupInfoOpen(false)}
+          onOpenProfile={openProfileModal}
+        />
+      ) : null}
+
+      {manageOpen && manageChat ? (
+        <UpdateGroupModal
+          chat={manageChat}
+          onClose={() => {
+            setManageOpen(false)
+            setManageChat(null)
+            fetchChats()
+          }}
           onOpenProfile={openProfileModal}
         />
       ) : null}

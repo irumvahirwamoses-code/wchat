@@ -5,6 +5,7 @@ import JoinRequest from '../models/JoinRequest.js';
 import { CATEGORIES, FEATURES } from '../data/categories.js';
 import { INTEREST_IDS } from '../data/interests.js';
 import { randomBytes } from 'crypto';
+import { can, denyFor } from '../controllers/accessController.js';
 
 const POPULATE_USER_FIELDS = 'firstName lastName username profilePicture isOnline lastSeen';
 
@@ -158,8 +159,13 @@ export const createGroupChat = async (req, res, next) => {
       return res.status(400).json({ message: 'Group name is required' });
     }
 
-    if (!Array.isArray(users) || users.length === 0) {
-      return res.status(400).json({ message: 'Please add at least one member' });
+    const invitees = Array.isArray(users) ? users : [];
+    if (users !== undefined && !Array.isArray(users)) {
+      return res.status(400).json({ message: 'users must be a list of member ids' });
+    }
+
+    if (invitees.length > 100) {
+      return res.status(400).json({ message: 'You can invite at most 100 members when creating a community' });
     }
 
     if (!CATEGORIES.includes(category)) {
@@ -188,7 +194,7 @@ export const createGroupChat = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid circle type' });
     }
 
-    const memberIds = [...new Set([...users.map((id) => String(id)), req.user._id.toString()])];
+    const memberIds = [...new Set([...invitees.map((id) => String(id)), req.user._id.toString()])];
 
     const existingMembers = await User.find({ _id: { $in: memberIds } }).select('_id');
 
@@ -227,11 +233,24 @@ export const createGroupChat = async (req, res, next) => {
  */
 export const addGroupMember = async (req, res, next) => {
   try {
-    const { chatId, userId } = req.body;
+    const { chatId, userId, userIds } = req.body;
 
-    if (!chatId || !userId) {
-      return res.status(400).json({ message: 'chatId and userId are required' });
+    if (!chatId) {
+      return res.status(400).json({ message: 'chatId is required' });
     }
+
+    const targetIds = [];
+    if (Array.isArray(userIds) && userIds.length) {
+      targetIds.push(...userIds.map((id) => String(id)));
+    } else if (userId) {
+      targetIds.push(String(userId));
+    }
+
+    if (!targetIds.length) {
+      return res.status(400).json({ message: 'userId or userIds are required' });
+    }
+
+    const uniqueIds = [...new Set(targetIds)];
 
     const chat = await Chat.findById(chatId);
 
@@ -243,31 +262,65 @@ export const addGroupMember = async (req, res, next) => {
       return res.status(400).json({ message: 'This is not a group chat' });
     }
 
-    if (!isAdmin(chat, req.user._id)) {
-      return res.status(403).json({ message: 'Only the admin can add members' });
+    if (!can(chat, req.user._id, 'inviteMembers')) {
+      return res.status(403).json(denyFor(chat, 'inviteMembers'));
     }
 
-    const target = await User.findById(userId);
+    const targets = await User.find({ _id: { $in: uniqueIds } }).select('_id');
+    const foundIds = new Set(targets.map((target) => String(target._id)));
+    const missing = uniqueIds.filter((id) => !foundIds.has(id));
 
-    if (!target) {
-      return res.status(404).json({ message: 'User not found' });
+    if (missing.length) {
+      return res.status(404).json({ message: `Could not find users: ${missing.join(', ')}` });
     }
 
-    if (isMember(chat, target._id)) {
-      const populated = await populateChat(chat._id);
-      return res.json({ message: 'User is already a member', chat: populated });
-    }
+    const alreadyMembers = targets.filter((target) => isMember(chat, target._id));
+    const newMembers = targets.filter((target) => !isMember(chat, target._id));
 
-    chat.users.push(target._id);
+    newMembers.forEach((target) => chat.users.push(target._id));
     await chat.save();
 
-    await User.findByIdAndUpdate(target._id, {
-      $addToSet: { 'onboarding.joinedCircleIds': chat._id },
-    });
+    await Promise.all(
+      newMembers.map((target) =>
+        User.findByIdAndUpdate(target._id, {
+          $addToSet: { 'onboarding.joinedCircleIds': chat._id },
+        })
+      )
+    );
 
     const populated = await populateChat(chat._id);
 
-    return res.json({ message: 'Member added', chat: populated });
+    if (alreadyMembers.length && !newMembers.length) {
+      return res.json({ message: 'User is already a member', chat: populated });
+    }
+
+    return res.json({
+      message: newMembers.length ? 'Member(s) added' : 'No new members added',
+      added: newMembers.map((target) => target._id),
+      alreadyMembers: alreadyMembers.map((target) => target._id),
+      chat: populated,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getChat = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id)
+      .populate('users', POPULATE_USER_FIELDS)
+      .populate('groupAdmin', POPULATE_USER_FIELDS)
+      .lean();
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    if (!isMember(chat, req.user._id)) {
+      return res.status(403).json({ message: 'You are not a member of this chat' });
+    }
+
+    return res.json(chat);
   } catch (error) {
     return next(error);
   }
@@ -1042,6 +1095,7 @@ export default {
   listJoinRequests,
   handleJoinRequest,
   followGroup,
+  getChat,
   getChatSettings,
   updateChatSettings,
   pinMessage,

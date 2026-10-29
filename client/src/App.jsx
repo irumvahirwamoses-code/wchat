@@ -6,6 +6,7 @@ import { HelmetProvider } from './components/HelmetProvider'
 import AuthPage from './pages/AuthPage'
 import ChatPage from './pages/ChatPage'
 import JoinCirclePage from './pages/JoinCirclePage'
+import LandingPage from './pages/LandingPage'
 import OnboardingPage from './pages/OnboardingPage'
 
 function AppRoutes() {
@@ -37,7 +38,7 @@ function AppRoutes() {
         path="/"
         element={
           !token ? (
-            <Navigate to="/auth" replace />
+            <LandingPage />
           ) : needsOnboarding ? (
             <Navigate to="/onboarding" replace />
           ) : (

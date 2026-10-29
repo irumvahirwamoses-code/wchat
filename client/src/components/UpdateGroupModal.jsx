@@ -21,7 +21,7 @@ import { formatHandle } from '../utils/handle'
 import Avatar from './Avatar'
 import Modal, { ModalHeader } from './Modal'
 
-export default function UpdateGroupModal({ onClose, onOpenProfile }) {
+export default function UpdateGroupModal({ onClose, onOpenProfile, chat: providedChat }) {
   const { user } = useAuth()
   const {
     selectedChat,
@@ -32,7 +32,7 @@ export default function UpdateGroupModal({ onClose, onOpenProfile }) {
     fetchJoinRequests,
   } = useChat()
 
-  const chat = selectedChat
+  const chat = providedChat || selectedChat
 
   const [chatName, setChatName] = useState(chat?.chatName || '')
   const [search, setSearch] = useState('')
@@ -95,7 +95,9 @@ export default function UpdateGroupModal({ onClose, onOpenProfile }) {
     setBusy('rename')
     try {
       await api.put('/chats/group/rename', { chatId: chat._id, chatName: value })
-      patchSelectedChat({ chatName: value })
+      if (selectedChat?._id === chat._id) {
+        patchSelectedChat({ chatName: value })
+      }
       await fetchChats()
       toast.success('Group renamed')
     } catch (error) {
@@ -110,7 +112,9 @@ export default function UpdateGroupModal({ onClose, onOpenProfile }) {
     try {
       await api.post('/chats/group/add', { chatId: chat._id, userId: target._id })
       const nextUsers = [...(chat.users || []), target]
-      patchSelectedChat({ users: nextUsers })
+      if (selectedChat?._id === chat._id) {
+        patchSelectedChat({ users: nextUsers })
+      }
       await fetchChats()
       setSearch('')
       setResults([])

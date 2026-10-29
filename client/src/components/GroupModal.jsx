@@ -10,17 +10,20 @@ import Avatar from './Avatar'
 import Modal, { ModalHeader } from './Modal'
 import UserBadgeItem from './UserBadgeItem'
 
-export default function GroupModal({ onClose }) {
+export default function GroupModal({ onClose, onCreated }) {
   const { user } = useAuth()
   const { chats, fetchChats, selectChat } = useChat()
 
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState('')
+  const [description, setDescription] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState([])
   const [remoteResults, setRemoteResults] = useState([])
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState('topic')
   const [features, setFeatures] = useState([])
+  const [joinPolicy, setJoinPolicy] = useState('open')
+  const [circleType, setCircleType] = useState('topic')
   const [options, setOptions] = useState({ categories: [], features: [] })
   const [creating, setCreating] = useState(false)
 
@@ -104,11 +107,7 @@ export default function GroupModal({ onClose }) {
 
   const handleCreate = async () => {
     if (name.trim().length < 2) {
-      toast.error('Give your group a name (at least 2 characters)')
-      return
-    }
-    if (selected.length < 1) {
-      toast.error('Select at least one member for the group')
+      toast.error('Give your community a name (at least 2 characters)')
       return
     }
     setCreating(true)
@@ -119,13 +118,17 @@ export default function GroupModal({ onClose }) {
         category,
         features,
         groupAvatar: avatar.trim() || undefined,
+        description: String(description).trim().slice(0, 280),
+        joinPolicy,
+        circleType,
       })
       await fetchChats()
       selectChat(data)
-      toast.success('Group created')
+      toast.success('Community created')
+      onCreated?.(data)
       onClose?.()
     } catch (error) {
-      toast.error(getApiError(error, 'Could not create the group'))
+      toast.error(getApiError(error, 'Could not create the community'))
     } finally {
       setCreating(false)
     }
@@ -133,12 +136,12 @@ export default function GroupModal({ onClose }) {
 
   return (
     <Modal onClose={onClose} size="max-w-xl">
-      <ModalHeader
-        icon={<Users size={20} />}
-        title="Create a group"
-        subtitle="Add a name, members and a few tags"
-        onClose={onClose}
-      />
+        <ModalHeader
+          icon={<Users size={20} />}
+          title="Create a community"
+          subtitle="Add a name, optional members, and Circle settings"
+          onClose={onClose}
+        />
 
       <div className="space-y-4 px-5 py-5">
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
@@ -166,58 +169,100 @@ export default function GroupModal({ onClose }) {
           </label>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Category
-            </span>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className={inputClass}
-            >
-              <option value="">No category</option>
-              {options.categories.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div>
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Features
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {options.features.length === 0 ? (
-                <span className="text-xs text-zinc-600">No features available</span>
-              ) : (
-                options.features.map((feature) => {
-                  const active = features.includes(feature)
-                  return (
-                    <button
-                      key={feature}
-                      type="button"
-                      onClick={() => toggleFeature(feature)}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                        active
-                          ? 'border-amber-400 bg-amber-400/15 text-amber-300'
-                          : 'border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
-                      }`}
-                    >
-                      {active ? `${feature} ✓` : feature}
-                    </button>
-                  )
-                })
-              )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Category
+              </span>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className={inputClass}
+              >
+                {options.categories.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Who can join
+              </span>
+              <select
+                value={joinPolicy}
+                onChange={(event) => setJoinPolicy(event.target.value)}
+                className={inputClass}
+              >
+                <option value="open">Open — anyone with the link can join</option>
+                <option value="request">Request — admin approves members</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Features
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {options.features.length === 0 ? (
+                  <span className="text-xs text-zinc-600">No features available</span>
+                ) : (
+                  options.features.map((feature) => {
+                    const active = features.includes(feature)
+                    return (
+                      <button
+                        key={feature}
+                        type="button"
+                        onClick={() => toggleFeature(feature)}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                          active
+                            ? 'border-amber-400 bg-amber-400/15 text-amber-300'
+                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                        }`}
+                      >
+                        {active ? `${feature} ✓` : feature}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+            <div>
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Circle type
+              </span>
+              <select
+                value={circleType}
+                onChange={(event) => setCircleType(event.target.value)}
+                className={inputClass}
+              >
+                <option value="topic">Topic community</option>
+                <option value="local">Local community</option>
+              </select>
             </div>
           </div>
-        </div>
 
-        <div>
-          <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Members {selected.length ? `(${selected.length})` : ''}
-          </span>
+          <div>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Description
+              </span>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="What is this Circle about?"
+                className={`${inputClass} min-h-[72px] resize-y`}
+              />
+            </label>
+          </div>
+
+          <div>
+            <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-500">
+              Members {selected.length ? `(${selected.length})` : ''}
+            </span>
           {selected.length ? (
             <div className="mb-3 flex flex-wrap gap-2">
               {selected.map((member) => (
@@ -250,7 +295,7 @@ export default function GroupModal({ onClose }) {
               <p className="px-4 py-6 text-center text-sm text-zinc-500">
                 {search.trim()
                   ? 'No matches found'
-                  : 'Search for people to add to your group'}
+                  : 'Search for people to add now, or invite them later'}
               </p>
             ) : (
               candidates.map((candidate) => {
@@ -314,7 +359,7 @@ export default function GroupModal({ onClose }) {
           className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-300 disabled:opacity-60"
         >
           {creating ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
-          Create group
+          Create community
         </button>
       </div>
     </Modal>

@@ -120,6 +120,8 @@ export const fileUrl = (file) => {
 };
 
 const ALLOWED_PREFIXES = ['image/', 'audio/', 'video/'];
+const BLOCKED_MIMES = new Set(['text/html', 'application/xhtml+xml', 'image/svg+xml']);
+const BLOCKED_EXTENSIONS = new Set(['.html', '.htm', '.svg', '.xhtml']);
 
 // Documents & archives (PDF, Office, text, zip…). Any file whose extension is in
 // this list is also accepted, because some browsers send `application/octet-stream`.
@@ -159,6 +161,18 @@ const ALLOWED_EXTENSIONS = new Set([
 const fileFilter = (req, file, cb) => {
   const mimetype = file.mimetype || '';
   const ext = path.extname(file.originalname || '').toLowerCase();
+
+  const blocked =
+    BLOCKED_MIMES.has(mimetype) || BLOCKED_EXTENSIONS.has(ext);
+
+  if (blocked) {
+    const error = new Error(
+      'That file type is not supported. Send images, audio, video, or documents.'
+    );
+    error.status = 400;
+    cb(error);
+    return;
+  }
 
   const allowed =
     ALLOWED_PREFIXES.some((prefix) => mimetype.startsWith(prefix)) ||

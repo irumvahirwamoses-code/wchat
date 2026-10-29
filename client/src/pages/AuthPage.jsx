@@ -22,6 +22,7 @@ import toast from 'react-hot-toast'
 import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
+import Seo from '../components/Seo'
 import countries from '../data/countries'
 import dialCodes, {
   DEFAULT_DIAL,
@@ -54,6 +55,11 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-surface">
+      <Seo
+        title="Create Account | Wchat"
+        description="Create a Wchat account to join Circles, chat in real time, and invite people with links or QR codes."
+        path="/auth"
+      />
       <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-2">
         {/* ---------------------------------------------------------- brand side */}
         <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between wchat-gradient p-12 text-white">

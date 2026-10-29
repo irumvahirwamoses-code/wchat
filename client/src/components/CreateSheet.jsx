@@ -1,9 +1,10 @@
-import { Clapperboard, Image, Plus, X } from 'lucide-react'
+import { Clapperboard, Image, Plus, Users, X } from 'lucide-react'
 
 const OPTIONS = [
   { id: 'post', title: 'Post', hint: 'Photo or video — up to 10 in a carousel', icon: Image },
   { id: 'story', title: 'Story', hint: 'Disappears after 24 hours', icon: Plus },
   { id: 'reel', title: 'Reel', hint: 'Short video with music, filters and text', icon: Clapperboard },
+  { id: 'community', title: 'Community', hint: 'Create a Circle and invite people', icon: Users },
 ]
 
 /**

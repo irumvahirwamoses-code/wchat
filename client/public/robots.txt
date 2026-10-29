@@ -3,10 +3,11 @@ Allow: /
 Allow: /auth
 Disallow: /api/
 Disallow: /uploads/
+Disallow: /join/
+Disallow: /onboarding
 Disallow: /chat/
 Disallow: /profile/
-Disallow: /onboarding/
 Disallow: /communities/
 Disallow: /discover/
 Disallow: /reels/
-Sitemap: https://wchat.vercel.app/sitemap.xml
+Sitemap: /sitemap.xml

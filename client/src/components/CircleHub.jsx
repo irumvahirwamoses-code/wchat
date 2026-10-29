@@ -13,12 +13,14 @@ import {
   Sparkles,
   Trash2,
   Trophy,
+  UserPlus,
   Users,
   X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api, { getApiError } from '../config/api'
 import Avatar from './Avatar'
+import GroupInviteModal from './GroupInviteModal'
 import Modal, { ModalHeader } from './Modal'
 import { useAuth } from '../context/AuthContext'
 import { getFileUrl, getId } from '../utils/api'
@@ -525,6 +527,7 @@ export default function CircleHub({ chat, onClose, onOpenProfile }) {
   const [items, setItems] = useState({})
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   const section = useMemo(
     () => CIRCLE_SECTIONS.find((s) => s.id === active) || CIRCLE_SECTIONS[0],
@@ -639,6 +642,14 @@ export default function CircleHub({ chat, onClose, onOpenProfile }) {
           </div>
           <button
             type="button"
+            onClick={() => setInviteOpen(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+          >
+            <UserPlus size={14} />
+            Invite
+          </button>
+          <button
+            type="button"
             onClick={() => setCreating((v) => !v)}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-300"
           >
@@ -663,6 +674,13 @@ export default function CircleHub({ chat, onClose, onOpenProfile }) {
                 }))
               }
             }}
+          />
+        ) : null}
+
+        {inviteOpen ? (
+          <GroupInviteModal
+            chat={chat}
+            onClose={() => setInviteOpen(false)}
           />
         ) : null}
 

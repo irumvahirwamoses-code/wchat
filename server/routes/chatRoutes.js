@@ -12,6 +12,7 @@ import {
   listJoinRequests,
   handleJoinRequest,
   followGroup,
+  getChat,
   getChatSettings,
   updateChatSettings,
   pinMessage,
@@ -47,6 +48,7 @@ router.delete('/group/:id', protect, deleteGroup);
 // Chats
 router.post('/', protect, createChat);
 router.get('/', protect, listChats);
+router.get('/:id', protect, getChat);
 router.post('/:id/follow', protect, followGroup);
 router.post('/:id/join-request', protect, sendJoinRequest);
 

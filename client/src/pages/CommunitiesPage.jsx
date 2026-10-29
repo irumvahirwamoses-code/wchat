@@ -6,11 +6,14 @@ import {
   Film,
   MessageCircle,
   Plus,
+  ShieldCheck,
   Trophy,
+  UserPlus,
   Users,
 } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import api, { getApiError } from '../config/api'
+import { useChat } from '../context/ChatContext'
 
 const SECTION_META = [
   { key: 'reel', label: 'Reels', icon: Film },
@@ -20,9 +23,10 @@ const SECTION_META = [
   { key: 'opportunity', label: 'Opportunities', icon: Briefcase },
 ]
 
-export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onError }) {
+export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onInvite, onManage, onError }) {
   const [communities, setCommunities] = useState([])
   const [loading, setLoading] = useState(true)
+  const { chats } = useChat()
 
   useEffect(() => {
     document.title = 'Circles | Wchat'
@@ -125,18 +129,32 @@ export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onErr
                   })}
                 </div>
 
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => onOpenHub?.(circle)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-300"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-400 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-300"
                   >
                     <Users size={14} /> Community hub
                   </button>
                   <button
                     type="button"
+                    onClick={() => onInvite?.(circle)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    <UserPlus size={14} /> Invite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onManage?.(circle)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                  >
+                    <ShieldCheck size={14} /> Members
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => onOpenChat?.(circle)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-800"
                   >
                     <MessageCircle size={14} /> Open chat
                   </button>
