@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async'
+import { useEffect } from 'react'
 import { SITE_NAME, siteUrl, ogImageUrl } from '../config/site'
 
 export default function Seo({
@@ -15,26 +15,51 @@ export default function Seo({
   const pageUrl = url || siteUrl(path)
   const pageImage = image || ogImageUrl
 
-  return (
-    <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="title" content={fullTitle} />
-      <meta name="description" content={pageDescription} />
-      <meta name="robots" content={noIndex ? 'noindex, nofollow' : 'index, follow'} />
-      <link rel="canonical" href={pageUrl} />
+  useEffect(() => {
+    document.title = fullTitle
 
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={pageDescription} />
-      <meta property="og:type" content={type} />
-      <meta property="og:url" content={pageUrl} />
-      <meta property="og:image" content={pageImage} />
-      <meta property="og:image:alt" content={fullTitle} />
-      <meta property="og:site_name" content={SITE_NAME} />
+    const setMeta = (name, value) => {
+      let el = document.querySelector(`meta[name="${name}"]`)
+      if (!el) {
+        el = document.createElement('meta')
+        el.setAttribute('name', name)
+        document.head.appendChild(el)
+      }
+      el.setAttribute('content', value)
+    }
 
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={pageDescription} />
-      <meta name="twitter:image" content={pageImage} />
-    </Helmet>
-  )
+    const setOg = (property, value) => {
+      let el = document.querySelector(`meta[property="${property}"]`)
+      if (!el) {
+        el = document.createElement('meta')
+        el.setAttribute('property', property)
+        document.head.appendChild(el)
+      }
+      el.setAttribute('content', value)
+    }
+
+    setMeta('description', pageDescription)
+    setMeta('robots', noIndex ? 'noindex, nofollow' : 'index, follow')
+    setMeta('twitter:title', fullTitle)
+    setMeta('twitter:description', pageDescription)
+    setMeta('twitter:image', pageImage)
+
+    setOg('og:title', fullTitle)
+    setOg('og:description', pageDescription)
+    setOg('og:type', type)
+    setOg('og:url', pageUrl)
+    setOg('og:image', pageImage)
+    setOg('og:image:alt', fullTitle)
+    setOg('og:site_name', SITE_NAME)
+
+    let canonical = document.querySelector('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.setAttribute('rel', 'canonical')
+      document.head.appendChild(canonical)
+    }
+    canonical.setAttribute('href', pageUrl)
+  }, [fullTitle, pageDescription, noIndex, pageUrl, pageImage, type])
+
+  return null
 }
