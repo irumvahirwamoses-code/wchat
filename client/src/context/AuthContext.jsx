@@ -159,6 +159,7 @@ export function AuthProvider({ children }) {
       logout,
       updateUser,
       isAuthenticated: Boolean(token),
+      isSuperAdmin: user?.role === 'superadmin',
     }),
     [
       user,

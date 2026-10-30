@@ -12,6 +12,7 @@ import {
 import { isEmailConfigured, sendVerificationEmail } from '../services/mailer.js';
 import { isSmsConfigured, sendVerificationSms } from '../services/sms.js';
 import { ensurePersonalCircle } from '../services/circles.js';
+import { getSystemSettings } from '../services/systemSettings.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\+?[0-9]{7,15}$/;
@@ -168,6 +169,13 @@ export const suggestUsernames = async (req, res, next) => {
  */
 export const requestRegistration = async (req, res, next) => {
   try {
+    const settings = await getSystemSettings();
+    if (settings.registrationOpen === false) {
+      return res.status(403).json({
+        message: 'New registrations are temporarily closed. Please check back soon.',
+      });
+    }
+
     const { error, data } = validateRegistration(req.body);
 
     if (error) return res.status(400).json({ message: error });
@@ -460,6 +468,15 @@ export const login = async (req, res, next) => {
 
     if (!user || !(await user.matchPassword(String(password)))) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message: user.blockedReason
+          ? `Your account has been blocked: ${user.blockedReason}`
+          : 'Your account has been blocked by an administrator.',
+        blocked: true,
+      });
     }
 
     const token = generateToken(user._id);

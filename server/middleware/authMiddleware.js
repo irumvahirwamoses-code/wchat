@@ -27,6 +27,15 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Not authorized, token failed' });
     }
 
+    if (user.isBlocked) {
+      return res.status(403).json({
+        message: user.blockedReason
+          ? `Your account has been blocked: ${user.blockedReason}`
+          : 'Your account has been blocked by an administrator.',
+        blocked: true,
+      });
+    }
+
     req.user = user;
     return next();
   } catch (error) {

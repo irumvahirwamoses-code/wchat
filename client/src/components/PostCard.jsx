@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, Heart, MapPin, MessageCircle, Pin, Share, Bookmark, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Flag, Heart, MapPin, MessageCircle, Pin, Share, Bookmark, Trash2 } from 'lucide-react'
+import ReportModal from './ReportModal'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
@@ -132,6 +133,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   )
   const [pinned, setPinned] = useState(Boolean(post.pinnedAt))
   const [busy, setBusy] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const spark = async () => {
     setBusy(true)
@@ -324,6 +326,16 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         >
           <Bookmark size={17} fill={saved ? '#245bff' : 'none'} />
         </button>
+        {!isMine ? (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            title="Report post"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-rose-300"
+          >
+            <Flag size={16} />
+          </button>
+        ) : null}
         {canShare ? (
           <button
             type="button"
@@ -346,6 +358,17 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           </span>
         )}
       </footer>
+
+      {reportOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <ReportModal
+            targetType="post"
+            targetId={post._id}
+            targetName="this post"
+            onClose={() => setReportOpen(false)}
+          />
+        </div>
+      ) : null}
     </article>
   )
 }

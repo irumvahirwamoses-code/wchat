@@ -39,6 +39,16 @@ api.interceptors.response.use(
     const isAuthEndpoint =
       url.includes('/auth/login') || url.includes('/auth/register')
 
+    // A blocked account is rejected with 403 + `blocked: true`. Sign it out so
+    // the person sees the sign-in screen instead of a half-working app.
+    if (status === 403 && error?.response?.data?.blocked) {
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
+      if (window.location.pathname !== '/auth') {
+        window.location.assign('/auth')
+      }
+    }
+
     if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)

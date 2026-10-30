@@ -1,4 +1,4 @@
-import { Palette, Plus } from 'lucide-react'
+import { MessageSquareHeart, Palette, Plus, ShieldCheck } from 'lucide-react'
 import { PRIMARY_NAV, SECONDARY_NAV } from '../config/nav'
 import Logo from './Logo'
 import Avatar from './Avatar'
@@ -17,6 +17,8 @@ export default function SideRail({
   onChange,
   onNewPost,
   onOpenProfile,
+  onOpenAdmin,
+  onOpenFeedback,
   unreadChat = 0,
 }) {
   const { user } = useAuth()
@@ -79,6 +81,30 @@ export default function SideRail({
       </nav>
 
       <div className="flex flex-col gap-1 border-t border-zinc-800/80 px-2 py-3 lg:px-3">
+        {onOpenAdmin ? (
+          <button
+            type="button"
+            onClick={onOpenAdmin}
+            title="Super admin console"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-wchat transition hover:bg-wchat/10"
+          >
+            <ShieldCheck size={20} className="shrink-0" />
+            <span className="hidden lg:inline">Admin</span>
+          </button>
+        ) : null}
+
+        {onOpenFeedback ? (
+          <button
+            type="button"
+            onClick={onOpenFeedback}
+            title="Send feedback"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-zinc-500 transition hover:bg-zinc-800/70 hover:text-zinc-200"
+          >
+            <MessageSquareHeart size={20} className="shrink-0" />
+            <span className="hidden lg:inline">Feedback</span>
+          </button>
+        ) : null}
+
         <button
           type="button"
           onClick={() => applyTheme(nextTheme(getTheme()))}

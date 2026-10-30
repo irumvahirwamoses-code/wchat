@@ -5,8 +5,10 @@ import {
   Loader2,
   LogOut,
   MessageCircle,
+  MessageSquareHeart,
   Plus,
   Search,
+  ShieldCheck,
   User,
   Users,
 } from 'lucide-react'
@@ -19,7 +21,7 @@ import Avatar from './Avatar'
 import Logo from './Logo'
 import { formatHandle } from '../utils/handle'
 
-export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup }) {
+export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup, onOpenAdmin, onOpenFeedback }) {
   const { user, logout } = useAuth()
   const { selectChat, fetchChats, pendingJoinRequestCount, fetchJoinRequests } =
     useChat()
@@ -164,6 +166,26 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup 
                   label="Discover groups"
                   onClick={handleOpenDiscovery}
                 />
+                {onOpenAdmin ? (
+                  <MenuItem
+                    icon={<ShieldCheck size={16} />}
+                    label="Admin console"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onOpenAdmin()
+                    }}
+                  />
+                ) : null}
+                {onOpenFeedback ? (
+                  <MenuItem
+                    icon={<MessageSquareHeart size={16} />}
+                    label="Send feedback"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onOpenFeedback()
+                    }}
+                  />
+                ) : null}
                 <MenuItem
                   icon={<LogOut size={16} />}
                   label="Log out"

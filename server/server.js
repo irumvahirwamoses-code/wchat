@@ -23,6 +23,12 @@ import postRoutes from './routes/postRoutes.js';
 import storyRoutes from './routes/storyRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
+import {
+  getSystemSettings,
+  isMaintenanceActive,
+} from './services/systemSettings.js';
 import { CATEGORIES, FEATURES } from './data/categories.js';
 import {
   INTERESTS,
@@ -134,7 +140,61 @@ app.get('/api/countries', (req, res) => {
   res.json({ countries: COUNTRIES });
 });
 
+// Public: is the platform in maintenance mode? The client uses this to show
+// the "we'll be right back" screen before any logged-in request is made.
+app.get('/api/system/status', async (req, res) => {
+  try {
+    const settings = await getSystemSettings();
+    res.json({
+      maintenanceEnabled: isMaintenanceActive(settings),
+      maintenanceMessage: settings.maintenanceMessage,
+      maintenanceUntil: settings.maintenanceUntil,
+      registrationOpen: settings.registrationOpen,
+    });
+  } catch {
+    res.json({ maintenanceEnabled: false, registrationOpen: true });
+  }
+});
+
+// -------------------- Maintenance guard --------------------
+// While maintenance mode is on, regular API calls are refused with 503 so the
+// whole platform is effectively disabled. Auth, public status and the admin
+// dashboard stay reachable so the owner can turn it back on.
+app.use('/api', async (req, res, next) => {
+  try {
+    const settings = await getSystemSettings();
+    if (!isMaintenanceActive(settings)) return next();
+    if (req.path.startsWith('/admin') || req.path === '/health') return next();
+
+    // Super admins can keep using the whole app so they can manage it.
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.headers.token) {
+      token = req.headers.token;
+    }
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const admin = await User.findById(decoded.id).select('role').lean();
+        if (admin?.role === 'superadmin') return next();
+      } catch {
+        /* fall through to 503 */
+      }
+    }
+
+    return res.status(503).json({
+      maintenance: true,
+      message: settings.maintenanceMessage,
+    });
+  } catch {
+    return next();
+  }
+});
+
 // -------------------- API routes --------------------
+app.use('/api/admin', adminRoutes);
+app.use('/api/support', supportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);

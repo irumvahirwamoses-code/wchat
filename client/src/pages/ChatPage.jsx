@@ -16,9 +16,11 @@ import PostComposer from '../components/PostComposer'
 import ProfileModal from '../components/ProfileModal'
 import ReelComposer from '../components/ReelComposer'
 import StoryComposer from '../components/StoryComposer'
+import FeedbackModal from '../components/FeedbackModal'
 import SideDrawer from '../components/SideDrawer'
 import SideRail from '../components/SideRail'
 import UpdateGroupModal from '../components/UpdateGroupModal'
+import AdminDashboard from './AdminDashboard'
 import CommunitiesPage from './CommunitiesPage'
 import DiscoverPage from './DiscoverPage'
 import HomeFeed from './HomeFeed'
@@ -38,7 +40,7 @@ import useWebRTC from '../hooks/useWebRTC'
  * a full-screen Create sheet.
  */
 export default function ChatPage() {
-  const { user } = useAuth()
+  const { user, isSuperAdmin } = useAuth()
 
   useEffect(() => {
     document.title = 'Messages | Wchat'
@@ -70,6 +72,10 @@ export default function ChatPage() {
   const [showStoryComposer, setShowStoryComposer] = useState(false)
   const [showReelComposer, setShowReelComposer] = useState(false)
   const [reelKey, setReelKey] = useState(0)
+
+  /* ---------------------------------------------------- admin + feedback */
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   /* ------------------------------------------------------------ chat modals */
   const [groupOpen, setGroupOpen] = useState(false)
@@ -206,6 +212,8 @@ export default function ChatPage() {
                 onOpenProfile={() => setProfileUser(user)}
                 onOpenDiscovery={() => setDiscoveryOpen(true)}
                 onNewGroup={() => setGroupOpen(true)}
+                onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
+                onOpenFeedback={() => setFeedbackOpen(true)}
               />
               <NotesBar />
               <ChatList />
@@ -256,6 +264,8 @@ export default function ChatPage() {
         onChange={goTab}
         onNewPost={() => goTab('create')}
         onOpenProfile={() => setTab('profile')}
+        onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
+        onOpenFeedback={() => setFeedbackOpen(true)}
         unreadChat={unreadTotal}
       />
 
@@ -369,6 +379,16 @@ export default function ChatPage() {
 
       {editProfileOpen ? (
         <EditProfileModal onClose={() => setEditProfileOpen(false)} />
+      ) : null}
+
+      {adminOpen && isSuperAdmin ? (
+        <AdminDashboard onClose={() => setAdminOpen(false)} />
+      ) : null}
+
+      {feedbackOpen ? (
+        <Overlay>
+          <FeedbackModal onClose={() => setFeedbackOpen(false)} />
+        </Overlay>
       ) : null}
 
       {callState === 'incoming' && incomingCall ? (

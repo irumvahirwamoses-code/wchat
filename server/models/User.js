@@ -127,6 +127,19 @@ const userSchema = new mongoose.Schema(
     },
     /** Private accounts only share posts with approved followers. */
     isPrivate: { type: Boolean, default: false },
+
+    // --- Platform administration ------------------------------------------
+    /** `superadmin` can open the admin dashboard and manage the whole app. */
+    role: {
+      type: String,
+      enum: ['user', 'superadmin'],
+      default: 'user',
+      index: true,
+    },
+    /** When true the account cannot sign in or use the API until unblocked. */
+    isBlocked: { type: Boolean, default: false, index: true },
+    blockedReason: { type: String, trim: true, maxlength: 300, default: '' },
+    blockedAt: { type: Date, default: null },
     /** Whether Wchat may suggest this profile to similar people. */
     showInSuggestions: { type: Boolean, default: true },
 
