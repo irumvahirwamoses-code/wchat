@@ -26,7 +26,7 @@ No `ffmpeg` is installed in this environment, so no MP4 file was generated. To p
 | Time | Scene | On-screen title | On-screen caption | Icon |
 |------|-------|-----------------|-------------------|------|
 | 0–4s | 1 | Chats become communities | Create a Circle for your team, class, neighborhood, or interest. | Users |
-| 4–8s | 2 | Invite anyone in seconds | Share a link or QR code. Open Circles join instantly; request Circles await approval. | Share2 |
+| 4–8s | 2 | Invite anyone in seconds | Share a link or QR code. Open Circles join instantly; request Circles await approval. | Share |
 | 8–12s | 3 | Chat and call in real time | Group messaging, reactions, and WebRTC calls inside every Circle. | MessageCircle |
 | 12–16s | 4 | Reels, Stories, and Library | Short videos, disappearing stories, documents, events, challenges, and opportunities. | Film |
 | 16–20s | 5 | Spark, join, and decide | Members react with Sparks, join activities, and vote in Circle decisions. | Zap |

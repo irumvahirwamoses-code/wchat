@@ -22,7 +22,7 @@ const FEATURES = [
     body: 'Make a topic or local community in seconds. Members optional at start; invite people later.',
   },
   {
-    icon: <Share2 size={20} strokeWidth={2} />,
+    icon: <Share size={20} strokeWidth={2} />,
     title: 'Invite with link or QR',
     body: 'Every Circle gets a shareable invite code and QR code. Open Circles join instantly.',
   },

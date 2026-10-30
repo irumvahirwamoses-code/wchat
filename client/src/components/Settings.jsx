@@ -14,7 +14,7 @@ import {
   Palette,
   Phone,
   Plus,
-  Share2,
+  Share,
   Shield,
   Wifi,
   X,
@@ -38,7 +38,7 @@ const THEMES = [
 const SECTIONS = [
   { id: 'account', label: 'Account Center', icon: Zap },
   { id: 'appearance', label: 'Appearance', icon: Palette },
-  { id: 'sharing', label: 'Sharing & reuse', icon: Share2 },
+  { id: 'sharing', label: 'Sharing & reuse',     icon: Share },
   { id: 'insights', label: 'Insights', icon: BarChart3 },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'privacy', label: 'Privacy & safety', icon: Shield },

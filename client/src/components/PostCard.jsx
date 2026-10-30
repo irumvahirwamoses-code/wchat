@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, Heart, MapPin, MessageCircle, Pin, Share2, Bookmark, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Heart, MapPin, MessageCircle, Pin, Share, Bookmark, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
@@ -335,14 +335,14 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             }}
             title="Drop (share)"
           >
-            <Share2 size={17} />
+            <Share size={17} />
           </button>
         ) : (
           <span
             title="This creator has turned off sharing"
             className="ml-auto inline-flex items-center gap-1.5 text-xs text-zinc-700"
           >
-            <Share2 size={17} />
+            <Share size={17} />
           </span>
         )}
       </footer>
