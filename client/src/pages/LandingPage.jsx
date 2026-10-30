@@ -7,6 +7,7 @@ import {
   MessageCircle,
   Phone,
   ShieldCheck,
+  Share,
   Smartphone,
   Users,
 } from 'lucide-react'
