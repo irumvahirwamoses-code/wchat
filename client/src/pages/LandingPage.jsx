@@ -10,6 +10,8 @@ import {
   Share,
   Smartphone,
   Users,
+  Video,
+  Zap,
 } from 'lucide-react'
 import Logo from '../components/Logo'
 import PromoReel from '../components/PromoReel'
@@ -86,9 +88,33 @@ const FAQS = [
   },
 ]
 
+const INSIDE = [
+  {
+    icon: <MessageCircle size={26} strokeWidth={2} />,
+    title: 'Real-time Circles chat',
+    body: 'Group messaging with replies, reactions, read receipts, and WebRTC voice/video calls.',
+  },
+  {
+    icon: <Video size={26} strokeWidth={2} />,
+    title: 'Reels & Stories',
+    body: 'Short videos and disappearing stories, now with music search to score your moments.',
+  },
+  {
+    icon: <Zap size={26} strokeWidth={2} />,
+    title: 'Spark, Challenges & Events',
+    body: 'React to posts, join challenges, schedule events, and record group decisions.',
+  },
+  {
+    icon: <ShieldCheck size={26} strokeWidth={2} />,
+    title: 'Admin control panel',
+    body: 'Set join policies, access rules, member roles, and moderate content from one place.',
+  },
+]
+
 export default function LandingPage() {
   const location = useLocation()
   const from = location.state?.from?.pathname || '/auth'
+  const [musicSearch, setMusicSearch] = useState('')
 
   return (
     <div className="flex h-full flex-col min-h-screen bg-zinc-950 text-zinc-100">
@@ -104,11 +130,13 @@ export default function LandingPage() {
             <img
               src={logoImage}
               alt="Wchat"
-              className="h-9 w-9 rounded-xl"
+              className="h-9 w-9 rounded-xl shadow-lg shadow-amber-500/20"
               width={48}
               height={48}
             />
-            <span className="text-xl font-bold tracking-tight">Wchat</span>
+            <span className="text-xl font-bold tracking-tight bg-gradient-to-br from-amber-400 to-wchat-500 bg-clip-text text-transparent">
+              Wchat
+            </span>
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm text-zinc-400">
             <Link to="/auth" className="text-zinc-300 hover:text-white transition">
@@ -124,41 +152,52 @@ export default function LandingPage() {
           </div>
           <Link
             to="/auth"
-            className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-300"
+            className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-300"
           >
             <ArrowRight size={14} /> Get started
           </Link>
         </div>
       </header>
 
-      <main className="flex-1">
-        <section className="px-4 py-10 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-400 mb-4">
+      <main className="flex-1 relative overflow-hidden">
+        {/* Hero gradient glow behind */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <section className="px-4 py-16 md:py-24 text-center relative z-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20 mb-6">
             <span className="relative flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
             Live on Wchat
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">
             Where chats<span className="text-amber-400"> become communities</span>
           </h1>
-          <p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
             Wchat is a mobile-first social network built around Circles. Create a community, invite
-            people with a link or QR code, and chat, call, and share Reels in real time.
+            people with a link or QR code, chat in real time, and share Reels, Stories with music,
+            and Library content.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <PromoReel />
-            <div className="hidden sm:block w-1 border border-zinc-800" />
-            <div className="flex flex-col gap-4 w-full sm:w-[260px]">
+            <div className="relative w-full sm:w-[320px] max-w-[320px] aspect-[9/16] rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-2xl shadow-amber-500/10">
+              <PromoReel />
+              <div className="absolute inset-0 flex items-end p-4">
+                <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-full backdrop-blur">
+                  <div className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs text-white font-medium">Live preview</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4 w-full sm:w-[300px]">
               <Link
                 to="/auth"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3.5 text-sm font-semibold text-white shadow-lg hover:bg-amber-300 transition"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-300 hover:shadow-amber-500/40"
               >
                 Create your account <ArrowRight size={16} />
               </Link>
               <button
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-5 py-3.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 transition"
               >
-                <Smartphone size={16} /> Explore as a guest
+                <Smartphone size={16} /> Explore as guest
               </button>
               <p className="text-xs text-zinc-500">
                 Already have an account?{' '}
@@ -170,12 +209,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="px-4 py-14 border-y border-zinc-800/60 bg-zinc-900/30">
-          <h2 className="text-center text-xl font-semibold mb-10">How it works</h2>
+        {/* How it works */}
+        <section className="px-4 py-16 border-y border-zinc-800/60 bg-zinc-900/30 relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-xl md:text-2xl font-semibold mb-3">How it works</h2>
+            <p className="text-sm text-zinc-500">From empty screen to active Circle in three taps.</p>
+          </div>
           <ol className="max-w-5xl mx-auto grid gap-8 md:grid-cols-3 text-center">
             {STEPS.map((step) => (
               <li key={step.number} className="flex flex-col items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-400 text-white font-bold">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-400 text-white font-bold shadow-lg shadow-amber-500/30">
                   {step.number}
                 </span>
                 <h3 className="text-sm font-semibold">{step.title}</h3>
@@ -185,8 +228,34 @@ export default function LandingPage() {
           </ol>
         </section>
 
-        <section className="px-4 py-14">
-          <h2 className="text-center text-xl font-semibold mb-10">Built for communities</h2>
+        {/* Inside Wchat gallery */}
+        <section className="px-4 py-16 relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-xl md:text-2xl font-semibold mb-3">Inside Wchat</h2>
+            <p className="text-sm text-zinc-500">What your Circle looks like once you&apos;re in.</p>
+          </div>
+          <div className="max-w-5xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {INSIDE.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 hover:border-zinc-700 hover:bg-zinc-900/80 transition group"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 mb-4 group-hover:bg-amber-500/20 transition">
+                  {item.icon}
+                </div>
+                <h3 className="text-sm font-semibold mb-2">{item.title}</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Features grid */}
+        <section className="px-4 py-16 bg-zinc-900/30 relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-xl md:text-2xl font-semibold mb-3">Built for communities</h2>
+            <p className="text-sm text-zinc-500">Everything a Circle needs to grow and stay active.</p>
+          </div>
           <div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-3">
             {FEATURES.map((feature) => (
               <div
@@ -203,8 +272,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="px-4 py-14 text-center">
-          <h2 className="text-xl font-semibold mb-6">Frequently asked questions</h2>
+        {/* FAQ */}
+        <section className="px-4 py-16 text-center relative z-10">
+          <h2 className="text-xl md:text-2xl font-semibold mb-6">Frequently asked questions</h2>
           <div className="max-w-2xl mx-auto space-y-4">
             {FAQS.map(({ q, a }, index) => (
               <div key={index} className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 text-left">
@@ -215,29 +285,33 @@ export default function LandingPage() {
           </div>
         </section>
 
-          <section className="px-4 py-14 border-t border-zinc-800/60 text-center">
-            <h2 className="text-xl font-semibold mb-4">Start your first Circle today</h2>
-            <p className="text-lg text-zinc-400 mb-6">Create a community and add the people who matter.</p>
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-amber-300 transition"
-            >
-              Create account <ArrowRight size={16} />
+        {/* CTA */}
+        <section className="px-4 py-16 border-t border-zinc-800/60 text-center relative z-10">
+          <h2 className="text-xl md:text-2xl font-semibold mb-4">Start your first Circle today</h2>
+          <p className="text-lg text-zinc-400 mb-6">Create a community and add the people who matter.</p>
+          <Link
+            to="/auth"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-300 hover:shadow-amber-500/40"
+          >
+            Create account <ArrowRight size={16} />
+          </Link>
+          <p className="mt-4 text-xs text-zinc-500">
+            Already have an account?{' '}
+            <Link to={from} className="text-amber-400 hover:text-amber-300 underline">
+              Sign in
             </Link>
-            <p className="mt-4 text-xs text-zinc-500">
-              Already have an account?{' '}
-              <Link to={from} className="text-amber-400 hover:text-amber-300 underline">
-                Sign in
-              </Link>
-            </p>
-          </section>
+          </p>
+        </section>
       </main>
 
-      <footer className="border-t border-zinc-800/60 bg-zinc-900/40 py-8">
+      <footer className="border-t border-zinc-800/60 bg-zinc-900/40 py-8 relative z-10">
         <div className="px-4 text-center">
+          <p className="text-xs text-zinc-500 mb-1">
+            A product of <span className="text-amber-400 font-semibold">WUT Company</span>
+          </p>
           <p className="text-xs text-zinc-500">
-            © {new Date().getFullYear()} Wchat. Circles, chats, and communities built for real
-            connection.
+            © {new Date().getFullYear()} WUT Company. Wchat — Circles, chats, and communities
+            built for real connection.
           </p>
         </div>
       </footer>

@@ -43,6 +43,11 @@ const storySchema = new mongoose.Schema(
       maxlength: [300, 'A caption cannot exceed 300 characters'],
       default: '',
     },
+    music: {
+      title: { type: String, trim: true, maxlength: [100, 'Music title is too long'] },
+      artist: { type: String, trim: true, maxlength: [100, 'Artist name is too long'] },
+      url: { type: String, trim: true },
+    },
     viewers: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -79,7 +79,7 @@ export const createStory = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ message: 'An image or video is required' });
     }
-    const { caption = '', circleId, mediaType: mt } = req.body;
+    const { caption = '', circleId, mediaType: mt, music } = req.body;
     const mimetype = (req.file.mimetype || '').toLowerCase();
     let mediaType = 'image';
     if (mimetype.startsWith('video/')) mediaType = 'video';
@@ -104,6 +104,7 @@ export const createStory = async (req, res, next) => {
       media: fileUrl(req.file),
       mediaType,
       caption: String(caption).slice(0, 300),
+      music: music ? { title: String(music.title || '').slice(0, 100), artist: String(music.artist || '').slice(0, 100), url: String(music.url || '') } : undefined,
       viewers: [req.user._id],
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });

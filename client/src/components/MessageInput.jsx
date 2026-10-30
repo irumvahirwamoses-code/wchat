@@ -59,6 +59,15 @@ export default function MessageInput({ chatId }) {
     setScheduleAt('')
   }, [chatId])
 
+  // Focus the input when a reply is opened so the user can type immediately.
+  useEffect(() => {
+    if (replyTo?._id) {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus()
+      })
+    }
+  }, [replyTo?._id])
+
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
