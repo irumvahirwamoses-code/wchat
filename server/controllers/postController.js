@@ -663,11 +663,12 @@ export const removeCollaborator = async (req, res, next) => {
 
 /**
  * POST /api/posts/:id/send — send a post to a user as a direct message.
- * Body: { userId }
+ * Body: { userId } — userId can be a MongoDB _id or a username.
  */
 export const sendPost = async (req, res, next) => {
   try {
-    const { userId } = req.body;
+    const body = req.body || {};
+    const { userId } = body;
     if (!userId) return res.status(400).json({ message: 'userId is required' });
 
     const post = await Post.findById(req.params.id)
@@ -675,20 +676,28 @@ export const sendPost = async (req, res, next) => {
       .populate('circle', CIRCLE_FIELDS);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
-    const recipient = await User.findById(userId).select('_id firstName lastName username');
+    // Resolve username → ObjectId if needed.
+    let recipientId = userId;
+    if (!/^[0-9a-fA-F]{24}$/.test(String(userId))) {
+      const recipient = await User.findOne({ username: String(userId).replace(/^@/, '') }).select('_id');
+      if (!recipient) return res.status(404).json({ message: 'User not found' });
+      recipientId = recipient._id;
+    }
+
+    const recipient = await User.findById(recipientId).select('_id firstName lastName username');
     if (!recipient) return res.status(404).json({ message: 'User not found' });
-    if (String(userId) === String(req.user._id)) {
+    if (String(recipientId) === String(req.user._id)) {
       return res.status(400).json({ message: 'You cannot send a post to yourself' });
     }
 
     let chat = await Chat.findOne({
       isGroupChat: false,
-      users: { $all: [req.user._id, userId] },
+      users: { $all: [req.user._id, recipientId] },
     });
     if (chat && chat.users.length !== 2) chat = null;
     if (!chat) {
       chat = await Chat.create({
-        users: [req.user._id, userId],
+        users: [req.user._id, recipientId],
         isGroupChat: false,
       });
     }
@@ -746,7 +755,8 @@ export const repostToStory = async (req, res, next) => {
       return res.status(400).json({ message: 'Archived posts cannot be reposted' });
     }
 
-    const { text, music } = req.body;
+    const body = req.body || {};
+    const { text, music } = body;
     const musicObj = parseJson(music, null);
 
     const story = await Story.create({

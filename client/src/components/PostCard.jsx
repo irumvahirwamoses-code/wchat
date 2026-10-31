@@ -163,6 +163,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const [sendingReply, setSendingReply] = useState(false)
   const [showSendUser, setShowSendUser] = useState(false)
   const [sendToUser, setSendToUser] = useState('')
+  const [sendUsers, setSendUsers] = useState([])
 
   const spark = async () => {
     setBusy(true)
@@ -282,6 +283,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       })
       setShowSendUser(false)
       setSendToUser('')
+      setSendUsers([])
       toast.success('Post sent')
     } catch (error) {
       toast.error(getApiError(error, 'Could not send post'))
@@ -290,10 +292,29 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     }
   }
 
+  // Search users as the person types in the send-to-user box.
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(async () => {
+      const q = sendToUser.trim()
+      if (!q) {
+        setSendUsers([])
+        return
+      }
+      try {
+        const { data } = await api.get('/users', { params: { search: q } })
+        if (active) setSendUsers(Array.isArray(data) ? data : [])
+      } catch {
+        if (active) setSendUsers([])
+      }
+    }, 250)
+    return () => { active = false; clearTimeout(timer) }
+  }, [sendToUser])
+
   const repostToStoryAction = async () => {
     setBusy(true)
     try {
-      await api.post(`/posts/${post._id}/repost-to-story`)
+      await api.post(`/posts/${post._id}/repost-to-story`, { text: '', music: null })
       toast.success('Added to your story')
     } catch (error) {
       toast.error(getApiError(error, 'Could not repost to story'))
@@ -628,6 +649,24 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
               placeholder="Search users…"
               className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 mb-3 outline-none focus:border-amber-400/60"
             />
+            {sendUsers.length > 0 ? (
+              <div className="max-h-40 overflow-y-auto border border-zinc-800 rounded-lg bg-zinc-900 mb-3">
+                {sendUsers.map((u) => (
+                  <button
+                    key={getId(u)}
+                    type="button"
+                    onClick={() => {
+                      setSendToUser(getId(u))
+                      setSendUsers([])
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-800"
+                  >
+                    <Avatar src={u.profilePicture} name={`${u.firstName || ''} ${u.lastName || ''}`} size={24} />
+                    <span className="truncate text-sm">{u.username ? `@${u.username}` : `${u.firstName || ''} ${u.lastName || ''}`}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

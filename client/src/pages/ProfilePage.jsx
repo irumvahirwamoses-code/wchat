@@ -4,6 +4,8 @@ import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import Avatar from '../components/Avatar'
 import PostCard from '../components/PostCard'
+import PostComposer from '../components/PostComposer'
+import StoryComposer from '../components/StoryComposer'
 import ProfileInsights from '../components/ProfileInsights'
 import ProfileSocial from '../components/ProfileSocial'
 import SettingsPanel from '../components/Settings'
@@ -31,6 +33,7 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
   const [tab, setTab] = useState('posts')
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [storyComposerOpen, setStoryComposerOpen] = useState(false)
 
   useEffect(() => {
     document.title = 'Profile | Wchat'
@@ -120,6 +123,13 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
                       className="rounded-lg border border-zinc-800 px-3 py-1.5 text-[11px] font-semibold text-zinc-300 transition hover:border-wchat/50 hover:text-wchat"
                     >
                       Edit profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStoryComposerOpen(true)}
+                      className="rounded-lg border border-zinc-800 px-3 py-1.5 text-[11px] font-semibold text-zinc-300 transition hover:border-wchat/50 hover:text-wchat"
+                    >
+                      Add story
                     </button>
                     <button
                       type="button"
@@ -265,6 +275,13 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
       ) : null}
 
       {showSettings ? <SettingsPanel onClose={() => setShowSettings(false)} /> : null}
+
+      {storyComposerOpen && (
+        <StoryComposer
+          onClose={() => setStoryComposerOpen(false)}
+          onCreated={() => setStoryComposerOpen(false)}
+        />
+      )}
     </div>
   )
 }

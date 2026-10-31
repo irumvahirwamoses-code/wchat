@@ -14,19 +14,31 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
   const [query, setQuery] = useState('')
   const [tracks, setTracks] = useState([])
   const [myTracks, setMyTracks] = useState([])
-  [uploading, setUploading] = useState(false)
-  [fileInput, setFileInput] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [fileInput, setFileInput] = useState(null)
   [previewUrl, setPreviewUrl] = useState('')
   [audioEl, setAudioEl] = useState(null)
 
   useEffect(() => {
     fetchCatalog()
+    fetchMyTracks()
   }, [])
+
+  // Debounced catalog search as the user types.
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(() => {
+      fetchCatalog()
+    }, 250)
+    return () => { active = false; clearTimeout(timer) }
+  }, [query])
 
   const fetchCatalog = async () => {
     try {
       const { data } = await api.get('/music/catalog', { params: { q: query || undefined } })
-      setTracks(Array.isArray(data?.tracks) ? data.tracks : [])
+      if (typeof window !== 'undefined') {
+        setTracks(Array.isArray(data?.tracks) ? data.tracks : [])
+      }
     } catch {
       setTracks([])
     }
