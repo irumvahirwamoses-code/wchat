@@ -164,6 +164,10 @@ const userSchema = new mongoose.Schema(
     // --- Social graph ------------------------------------------------------
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    /** People who can see "Close Friends" stories. */
+    closeFriends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    /** Authors whose stories this member has muted. */
+    mutedStories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isOnline: { type: Boolean, default: false },
     lastSeen: { type: Date, default: Date.now },
     language: {
@@ -238,6 +242,19 @@ const userSchema = new mongoose.Schema(
         enum: ['everyone', 'people-i-follow', 'no-one'],
         default: 'everyone',
       },
+      /* --- Story privacy & interactions --- */
+      /** Default audience for new stories. */
+      storyAudience: {
+        type: String,
+        enum: ['public', 'followers', 'closeFriends'],
+        default: 'followers',
+      },
+      /** Accounts that can never see this member's stories. */
+      storyHideFrom: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      /** Allow followers to reply to stories via DM. */
+      storyAllowReplies: { type: Boolean, default: true },
+      /** Allow mentions in stories. */
+      storyAllowMentions: { type: Boolean, default: true },
       /** Activity push: Sparks, comments, mentions, joins. */
       notifyActivity: { type: Boolean, default: true },
       /** Chat notifications (new messages in threads). */

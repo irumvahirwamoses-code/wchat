@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Seo from '../components/Seo'
 import {
   Activity,
   AlertTriangle,
@@ -336,6 +337,12 @@ export default function AdminDashboard({ onClose }) {
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-zinc-950 text-zinc-100">
+      <Seo
+        noIndex
+        title="Admin Dashboard | Wchat"
+        description="Wchat super admin console — manage users, reports, feedback, and system settings."
+        path="/admin"
+      />
       {/* Header */}
       <header className="flex shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-900/60 px-4 py-3 backdrop-blur">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-wchat-400 to-wchat text-white shadow-lg shadow-wchat/30">

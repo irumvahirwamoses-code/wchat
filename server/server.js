@@ -75,6 +75,13 @@ const isAllowedOrigin = (origin) => {
   );
 };
 
+// Build the CSP connect-src list: same origin + configured client origins
+// so the CSP doesn't block the app's own API / Socket.IO calls.
+const cspConnectSrc = ["'self'"];
+for (const origin of CLIENT_ORIGINS) {
+  if (origin && origin !== '*') cspConnectSrc.push(origin);
+}
+
 const corsOrigin = (origin, callback) => {
   if (isAllowedOrigin(origin)) {
     callback(null, true);
@@ -93,7 +100,28 @@ const app = express();
 app.set('trust proxy', 1);
 
 // -------------------- Middleware --------------------
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://fonts.googleapis.com',
+        ],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        connectSrc: cspConnectSrc,
+        frameSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+      },
+    },
+  })
+);
 app.use(
   cors({
     origin: corsOrigin,

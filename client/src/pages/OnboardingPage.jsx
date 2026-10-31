@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Seo from '../components/Seo'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -48,10 +49,6 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState(null)
   const [finishing, setFinishing] = useState(false)
-
-  useEffect(() => {
-    document.title = 'Onboarding | Wchat'
-  }, [])
 
   /* -------------------------------------------------------------- taxonomy */
   useEffect(() => {
@@ -204,6 +201,12 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-surface">
+      <Seo
+        noIndex
+        title="Onboarding | Wchat"
+        description="Complete your Wchat setup: pick your interests and join your first Circles."
+        path="/onboarding"
+      />
       <header className="sticky top-0 z-10 border-b border-line bg-surface/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo size={36} tagline="Set up your circles" />

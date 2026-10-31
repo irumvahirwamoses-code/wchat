@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import Seo from '../components/Seo'
 import {
   BookOpen,
   Briefcase,
@@ -28,10 +29,6 @@ export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onInv
   const [loading, setLoading] = useState(true)
   const { chats } = useChat()
 
-  useEffect(() => {
-    document.title = 'Circles | Wchat'
-  }, [])
-
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -51,6 +48,11 @@ export default function CommunitiesPage({ onOpenHub, onCreate, onOpenChat, onInv
 
   return (
     <div className="flex h-full flex-col">
+      <Seo
+        title="Circles | Wchat"
+        description="Your Circles and communities on Wchat. Reels, Library, Challenges, Events, and Opportunities — all in one place."
+        path="/communities"
+      />
       <header className="flex items-center gap-2 border-b border-zinc-800/80 px-4 py-3">
         <Users size={20} className="text-amber-400" />
         <div className="min-w-0 flex-1">

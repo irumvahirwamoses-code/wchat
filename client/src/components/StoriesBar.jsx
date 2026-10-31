@@ -29,7 +29,7 @@ export default function StoriesBar({ rings = [], currentUser, onAddStory, onOpen
         </span>
       </button>
 
-      {rings.map((ring) => {
+      {rings.map((ring, index) => {
         const owner = ring.owner || {}
         const name = `${owner.firstName || ''} ${owner.lastName || ''}`.trim()
         const label = owner.username ? `@${owner.username}` : name || 'Member'
@@ -38,7 +38,7 @@ export default function StoriesBar({ rings = [], currentUser, onAddStory, onOpen
           <button
             key={getId(ring) || getId(owner)}
             type="button"
-            onClick={() => onOpenStory?.(ring)}
+            onClick={() => onOpenStory?.(ring, index)}
             className="flex shrink-0 flex-col items-center gap-1.5"
           >
             <span

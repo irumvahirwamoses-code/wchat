@@ -1,15 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <!-- Public homepage -->
   <url>
-    <loc>%VITE_SITE_URL%/</loc>
-    <lastmod>2026-10-29</lastmod>
+    <loc>https://wchat.vercel.app/</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- Public auth landing (noindex via robots meta, but listed for discovery) -->
   <url>
-    <loc>%VITE_SITE_URL%/auth</loc>
-    <lastmod>2026-10-29</lastmod>
+    <loc>https://wchat.vercel.app/auth</loc>
+    <lastmod>2026-10-31</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.5</priority>
   </url>
+
+  <!-- Public static pages (add more as you create them) -->
+  <url>
+    <loc>https://wchat.vercel.app/privacy</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- NOTE: Private routes (/chat, /profile, /communities, /discover, /reels, /onboarding, /join/:code)
+       are intentionally EXCLUDED. They require authentication and carry X-Robots-Tag: noindex. -->
 </urlset>

@@ -39,7 +39,13 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const [composerOpen, setComposerOpen] = useState(false)
   const [storyComposerOpen, setStoryComposerOpen] = useState(false)
   const [activeRing, setActiveRing] = useState(null)
+  const [activeRingIndex, setActiveRingIndex] = useState(0)
   const [activePost, setActivePost] = useState(null)
+
+  const openStory = (storyRing, index = 0) => {
+    setActiveRing(storyRing)
+    setActiveRingIndex(index)
+  }
 
   const unread = Object.values(notifications || {}).reduce((a, b) => a + b, 0)
 
@@ -115,7 +121,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
         rings={rings}
         currentUser={user}
         onAddStory={() => setStoryComposerOpen(true)}
-        onOpenStory={setActiveRing}
+        onOpenStory={openStory}
       />
 
       <div className="mx-auto max-w-xl px-4 py-4">
@@ -192,6 +198,10 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
       {activeRing ? (
         <StoryViewer
           ring={activeRing}
+          rings={rings}
+          startIndex={activeRingIndex}
+          currentUser={user}
+          onChanged={loadStories}
           onClose={() => {
             setActiveRing(null)
             loadStories()

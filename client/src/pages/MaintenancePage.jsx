@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Seo from '../components/Seo'
 import { Wrench, RefreshCw } from 'lucide-react'
 import Logo from '../components/Logo'
 import api from '../config/api'
@@ -9,10 +10,6 @@ import api from '../config/api'
  */
 export default function MaintenancePage({ message, until }) {
   const [checking, setChecking] = useState(false)
-
-  useEffect(() => {
-    document.title = 'Wchat is under maintenance'
-  }, [])
 
   const recheck = async () => {
     setChecking(true)
@@ -29,6 +26,12 @@ export default function MaintenancePage({ message, until }) {
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-zinc-950 px-6 text-center text-zinc-100">
+      <Seo
+        noIndex
+        title="Maintenance | Wchat"
+        description="Wchat is temporarily under maintenance. Check back soon."
+        path="/maintenance"
+      />
       <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-wchat/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
 

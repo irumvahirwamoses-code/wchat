@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Seo from '../components/Seo'
 import {
   Bookmark,
   Clapperboard,
@@ -238,10 +239,6 @@ export default function ReelsFeed({ onOpenProfile, onOpenHub, onError }) {
   const [viewerIndex, setViewerIndex] = useState(-1)
 
   useEffect(() => {
-    document.title = 'Reels | Wchat'
-  }, [])
-
-  useEffect(() => {
     const timer = setTimeout(() => setTerm(search), 400)
     return () => clearTimeout(timer)
   }, [search])
@@ -273,6 +270,11 @@ export default function ReelsFeed({ onOpenProfile, onOpenHub, onError }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-zinc-950">
+      <Seo
+        title="Reels | Wchat"
+        description="Short videos from your Circles and communities. Spark, Save, Drop, Remix, and join Circles straight from the feed."
+        path="/reels"
+      />
       <header className="border-b border-zinc-800/80 px-4 py-3">
         <div className="mx-auto flex max-w-xl items-center gap-2">
           <Clapperboard size={20} className="text-wchat" />

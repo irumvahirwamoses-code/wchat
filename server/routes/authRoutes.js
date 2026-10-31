@@ -8,6 +8,7 @@ import {
   login,
   getMe,
   updatePreferences,
+  toggleMuteStories,
   changePassword,
   toggleBlock,
   listBlocked,
@@ -31,6 +32,8 @@ router.get('/me', protect, getMe);
 
 // Account preferences (theme, data saver, privacy, sharing) + blocked accounts
 router.put('/preferences', protect, updatePreferences);
+router.post('/mute-stories/:userId', protect, toggleMuteStories);
+router.delete('/mute-stories/:userId', protect, toggleMuteStories);
 router.put('/password', protect, changePassword);
 router.get('/blocked', protect, listBlocked);
 router.post('/block/:userId', protect, toggleBlock);

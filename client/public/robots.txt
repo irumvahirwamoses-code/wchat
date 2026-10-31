@@ -1,3 +1,6 @@
+# Wchat robots.txt
+# Public pages are crawlable; private authenticated areas are blocked.
+
 User-agent: *
 Allow: /
 Allow: /auth
@@ -10,4 +13,7 @@ Disallow: /profile/
 Disallow: /communities/
 Disallow: /discover/
 Disallow: /reels/
-Sitemap: /sitemap.xml
+Disallow: /admin
+Disallow: /*?*
+
+Sitemap: https://wchat.vercel.app/sitemap.xml

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Seo from '../components/Seo'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, Loader2, Users, XCircle } from 'lucide-react'
 import api, { getApiError } from '../config/api'
@@ -19,10 +20,6 @@ export default function JoinCirclePage() {
   const [status, setStatus] = useState('joining') // joining | joined | pending | error
   const [circle, setCircle] = useState(null)
   const [message, setMessage] = useState('')
-
-  useEffect(() => {
-    document.title = 'Join Circle | Wchat'
-  }, [])
 
   useEffect(() => {
     if (token) return
@@ -65,6 +62,12 @@ export default function JoinCirclePage() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-zinc-950 px-4">
+      <Seo
+        noIndex
+        title="Join Circle | Wchat"
+        description="Join a Circle using an invite code or QR code."
+        path="/join"
+      />
       <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center shadow-2xl">
         {status === 'joining' ? (
           <>

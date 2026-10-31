@@ -493,6 +493,24 @@ export const login = async (req, res, next) => {
  */
 export const getMe = async (req, res) => res.json(req.user);
 
+/** Parse a JSON string / array / comma list into unique Mongo ids. */
+const parseIdList = (value) => {
+  let list = value;
+  if (typeof value === 'string') {
+    try {
+      list = JSON.parse(value);
+    } catch {
+      list = value.split(',');
+    }
+  }
+  if (!Array.isArray(list)) return null;
+  return [...new Set(
+    list
+      .map((item) => String(item || '').trim())
+      .filter((item) => /^[a-f0-9]{24}$/i.test(item))
+  )].slice(0, 500);
+};
+
 /**
  * PUT /api/auth/preferences
  * Persist the account's system settings (theme, data saver, privacy toggles).
@@ -513,6 +531,12 @@ export const updatePreferences = async (req, res, next) => {
       allowShareToStories,
       allowDownload,
       allowMentions,
+      storyAudience,
+      storyHideFrom,
+      storyAllowReplies,
+      storyAllowMentions,
+      closeFriends,
+      mutedStories,
     } = req.body;
 
     const user = await User.findById(req.user._id);
@@ -555,10 +579,66 @@ export const updatePreferences = async (req, res, next) => {
       )].slice(0, 50);
     }
 
+    // Story privacy & interactions.
+    if (['public', 'followers', 'closeFriends'].includes(storyAudience)) {
+      prefs.storyAudience = storyAudience;
+    }
+    if (typeof storyAllowReplies === 'boolean') prefs.storyAllowReplies = storyAllowReplies;
+    if (typeof storyAllowMentions === 'boolean') prefs.storyAllowMentions = storyAllowMentions;
+    if (storyHideFrom !== undefined) {
+      const parsed = parseIdList(storyHideFrom);
+      if (!parsed) return res.status(400).json({ message: 'storyHideFrom must be a list' });
+      prefs.storyHideFrom = parsed.filter((id) => id !== String(req.user._id));
+    }
+
+    if (closeFriends !== undefined) {
+      const parsed = parseIdList(closeFriends);
+      if (!parsed) return res.status(400).json({ message: 'closeFriends must be a list' });
+      user.closeFriends = parsed.filter((id) => id !== String(req.user._id));
+    }
+    if (mutedStories !== undefined) {
+      const parsed = parseIdList(mutedStories);
+      if (!parsed) return res.status(400).json({ message: 'mutedStories must be a list' });
+      user.mutedStories = parsed.filter((id) => id !== String(req.user._id));
+    }
+
     user.preferences = prefs;
     await user.save();
 
-    return res.json({ preferences: user.preferences });
+    return res.json({
+      preferences: user.preferences,
+      closeFriends: user.closeFriends,
+      mutedStories: user.mutedStories,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST / DELETE /api/auth/mute-stories/:userId
+ * Toggle whether an author's stories appear in this member's tray.
+ */
+export const toggleMuteStories = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (String(userId) === String(req.user._id)) {
+      return res.status(400).json({ message: 'You cannot mute your own stories' });
+    }
+    if (!/^[a-f0-9]{24}$/i.test(String(userId))) {
+      return res.status(400).json({ message: 'That account is not valid' });
+    }
+    const target = await User.findById(userId).select('_id');
+    if (!target) return res.status(404).json({ message: 'Account not found' });
+
+    const user = await User.findById(req.user._id);
+    if (!Array.isArray(user.mutedStories)) user.mutedStories = [];
+    const muted = user.mutedStories.some((id) => String(id) === String(userId));
+    if (muted) user.mutedStories.pull(userId);
+    else user.mutedStories.push(userId);
+    await user.save();
+
+    return res.json({ muted: !muted, mutedStories: user.mutedStories });
   } catch (error) {
     return next(error);
   }
@@ -566,7 +646,7 @@ export const updatePreferences = async (req, res, next) => {
 
 /**
  * PUT /api/auth/password
- * Change the account password (Account Center → Password & security).
+ * Change the account password (Account Center �+' Password & security).
  * Requires the current password so a hijacked session cannot lock the owner out.
  */
 export const changePassword = async (req, res, next) => {
@@ -657,6 +737,7 @@ export default {
   login,
   getMe,
   updatePreferences,
+  toggleMuteStories,
   changePassword,
   toggleBlock,
   listBlocked,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import Seo from '../components/Seo'
 import {
   Briefcase,
   Calendar,
@@ -606,12 +607,13 @@ function PostsTab({ onError }) {
 export default function DiscoverPage({ onOpenProfile, onOpenHub, onOpenCommunities, onError }) {
   const [tab, setTab] = useState('posts')
 
-  useEffect(() => {
-    document.title = 'Discover | Wchat'
-  }, [])
-
   return (
     <div className="flex h-full min-h-0 flex-col bg-zinc-950">
+      <Seo
+        title="Discover | Wchat"
+        description="Explore public posts, people, Circles, events, and opportunities across Wchat. Buzz, search, and discover new communities."
+        path="/discover"
+      />
       <header className="border-b border-zinc-800/80 px-4 py-3">
         <div className="mx-auto flex max-w-xl items-center gap-2">
           <Compass size={20} className="text-wchat" />
