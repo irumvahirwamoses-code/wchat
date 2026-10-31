@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, Flag, Heart, MapPin, MessageCircle, Pin, Share, Bookmark, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Flag,
+  Heart,
+  MapPin,
+  MessageCircle,
+  Music2,
+  Pin,
+  Share,
+  Bookmark,
+  Trash2,
+  Edit3,
+  Users,
+} from 'lucide-react'
 import ReportModal from './ReportModal'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
@@ -10,7 +26,7 @@ import { useAuth } from '../context/AuthContext'
 import { formatHandle } from '../utils/handle'
 import { formatTime } from '../utils/api'
 
-/** Renders the caption with #hashtags / @mentions highlighted (not clickable to a dead route). */
+/** Renders the caption with #hashtags / @mentions highlighted. */
 function Caption({ text, max = 400 }) {
   const short = text.length > max ? `${text.slice(0, max)}…` : text
   const parts = short.split(/([#@][\p{L}\p{N}_]+)/gu)
@@ -112,12 +128,13 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const { user } = useAuth()
   const author = post.author || {}
   const circle = post.circle || null
+  const collaborators = post.collaborators || []
   const authorName =
     `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username
   const isMine = getId(author) === user?._id
+  const canEdit = isMine || collaborators.some((c) => getId(c) === user?._id)
 
   // Sharing & reuse — the author decides what others may do with their content.
-  // Missing preferences default to allowed (older accounts).
   const authorPrefs = author?.preferences || {}
   const canDownload = isMine || authorPrefs.allowDownload !== false
   const canShare = isMine || authorPrefs.allowShareToStories !== false
@@ -132,8 +149,11 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     (post.savedBy || []).some((id) => getId(id) === user?._id)
   )
   const [pinned, setPinned] = useState(Boolean(post.pinnedAt))
+  const [archived, setArchived] = useState(Boolean(post.archivedAt))
   const [busy, setBusy] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editedText, setEditedText] = useState(post.text || '')
 
   const spark = async () => {
     setBusy(true)
@@ -187,6 +207,37 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     }
   }
 
+  const toggleArchive = async () => {
+    setBusy(true)
+    try {
+      const endpoint = archived ? '/unarchive' : '/archive'
+      const { data } = await api.post(`/posts/${post._id}${endpoint}`)
+      setArchived(data.archived)
+      toast.success(data.archived ? 'Post archived' : 'Post restored')
+      if (data.archived) onDeleted?.(post._id)
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not archive post'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const saveEdit = async () => {
+    setBusy(true)
+    try {
+      const { data } = await api.put(`/posts/${post._id}`, {
+        text: editedText,
+      })
+      setEditedText(data.text || '')
+      setEditOpen(false)
+      toast.success('Post updated')
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not update post'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const download = async (item) => {
     const url = getFileUrl(item.url)
     const name = item.fileName || `wchat-${post._id}`
@@ -204,7 +255,6 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       URL.revokeObjectURL(href)
       toast.success('Saved to your device')
     } catch {
-      // Cross-origin download — fall back to opening the file.
       window.open(url, '_blank', 'noopener')
     }
   }
@@ -214,8 +264,11 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       <header className="flex items-center gap-3 p-4">
         <Avatar src={author.profilePicture} name={authorName} size={42} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-zinc-100">
-            {authorName}{' '}
+          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+            {authorName}
+            {canEdit && !isMine ? (
+              <span className="text-xs text-amber-400" title="Co-author">· Collab</span>
+            ) : null}
             <span className="text-xs font-normal text-zinc-500">
               {formatHandle(author.username)}
             </span>
@@ -241,18 +294,52 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
                 <Pin size={11} className="inline text-amber-300" />
               </>
             ) : null}
+            {archived ? (
+              <>
+                <span>·</span>
+                <Archive size={11} className="inline text-zinc-400" />
+                <span className="text-zinc-500">Archived</span>
+              </>
+            ) : null}
+            {post.audio?.url ? (
+              <>
+                <span>·</span>
+                <Music2 size={11} className="inline text-pink-400" />
+              </>
+            ) : null}
           </p>
+          {post.audio?.title && (
+            <p className="text-[10px] text-zinc-500 truncate">
+              🎵 {post.audio.title}{post.audio.artist ? ` — ${post.audio.artist}` : ''}
+            </p>
+          )}
         </div>
         {isMine ? (
           <>
             <button
               type="button"
+              onClick={() => { setEditedText(post.text || ''); setEditOpen(true) }}
+              disabled={busy}
+              title="Edit post"
+              className="rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-300"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleArchive}
+              disabled={busy}
+              title={archived ? 'Restore post' : 'Archive post'}
+              className={`rounded-md p-1.5 transition hover:bg-zinc-800 ${archived ? 'text-zinc-400 hover:text-zinc-300' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <Archive size={16} />
+            </button>
+            <button
+              type="button"
               onClick={togglePin}
               disabled={busy}
               title={pinned ? 'Unpin' : 'Pin to profile (max 6)'}
-              className={`rounded-md p-1.5 transition hover:bg-zinc-800 ${
-                pinned ? 'text-amber-300' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
+              className={`rounded-md p-1.5 transition hover:bg-zinc-800 ${pinned ? 'text-amber-300' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               <Pin size={16} />
             </button>
@@ -285,6 +372,14 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       ) : null}
 
       {items.length ? <Carousel items={items} /> : null}
+
+      {post.audio?.url ? (
+        <div className="px-4 pb-2">
+          <audio controls className="w-full">
+            <source src={getFileUrl(post.audio.url)} type="audio/mpeg" />
+          </audio>
+        </div>
+      ) : null}
 
       <footer className="flex items-center gap-4 px-4 py-2.5">
         <button
@@ -358,6 +453,37 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           </span>
         )}
       </footer>
+
+      {editOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-zinc-950 rounded-2xl p-4 w-full max-w-md border border-zinc-800">
+            <h3 className="text-sm font-semibold mb-3">Edit post</h3>
+            <textarea
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              rows={4}
+              className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 mb-3"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="text-xs text-zinc-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={busy}
+                className="text-xs px-3 py-1.5 rounded-lg bg-amber-400 text-white disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {reportOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">

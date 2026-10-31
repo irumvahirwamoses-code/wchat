@@ -4,6 +4,7 @@ import Chat from '../models/Chat.js';
 import User from '../models/User.js';
 import { notify, resolveMentions } from '../services/notifications.js';
 import { fileUrl } from '../middleware/uploadMiddleware.js';
+import Collection from '../models/Collection.js';
 
 const AUTHOR_FIELDS =
   'firstName lastName username profilePicture isOnline lastSeen preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
@@ -20,10 +21,15 @@ async function buildFeedFilter(user) {
   const me = await User.findById(userId).select('following');
   const following = Array.isArray(me.following) ? me.following : [];
   return {
-    $or: [
-      { circle: { $in: chatIds } },
-      { circle: null, author: { $in: [...following, userId] } },
-      { author: userId },
+    $and: [
+      { archivedAt: null },
+      {
+        $or: [
+          { circle: { $in: chatIds } },
+          { circle: null, author: { $in: [...following, userId] } },
+          { author: userId },
+        ],
+      },
     ],
   };
 }
@@ -144,6 +150,7 @@ export const getUserPosts = async (req, res, next) => {
 
     const filter = {
       author: userId,
+      archivedAt: null,
       $or: [{ circle: null }, { circle: { $in: commonChats } }],
     };
 
@@ -176,7 +183,7 @@ export const getCirclePosts = async (req, res, next) => {
       return res.status(403).json({ message: 'You are not a member of this Circle' });
     }
 
-    const filter = { circle: chatId };
+    const filter = { circle: chatId, archivedAt: null };
     const total = await Post.countDocuments(filter);
     const posts = await Post.find(filter)
       .sort('-createdAt')
@@ -306,6 +313,25 @@ export const createPost = async (req, res, next) => {
 };
 
 /**
+ * POST /api/posts/media/audio — standalone audio upload for attaching music.
+ * Returns { url, title, artist, duration }.
+ */
+export const uploadAudio = async (req, res, next) => {
+  try {
+    const file = req.file
+    if (!file) return res.status(400).json({ message: 'No audio file provided' })
+    return res.json({
+      url: fileUrl(file),
+      title: req.body.title || '',
+      artist: req.body.artist || '',
+      duration: Number(req.body.duration) || 0,
+    })
+  } catch (error) {
+    return next(error)
+  }
+}
+
+/**
  * POST /api/posts/:id/spark (toggle)
  */
 export const sparkPost = async (req, res, next) => {
@@ -360,7 +386,7 @@ export const listSaved = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Math.min(Number(req.query.limit) || 10, 30);
-    const filter = { savedBy: req.user._id };
+    const filter = { savedBy: req.user._id, archivedAt: null };
     const total = await Post.countDocuments(filter);
     const posts = await Post.find(filter)
       .sort('-createdAt')
@@ -422,7 +448,7 @@ export const getExplore = async (req, res, next) => {
     const following = Array.isArray(me.following) ? me.following : [];
 
     // Visible-to-everyone content only: timeline posts + open (topic/local) Circles.
-    const filter = { circle: null, author: { $ne: req.user._id } };
+    const filter = { circle: null, author: { $ne: req.user._id }, archivedAt: null };
     if (tag) filter.tags = tag;
     if (q) {
       filter.$or = [
@@ -471,6 +497,153 @@ export const deletePost = async (req, res, next) => {
     await Comment.deleteMany({ post: post._id });
     await post.deleteOne();
     return res.json({ id: req.params.id });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * PUT /api/posts/:id — edit a post (author or collaborator only).
+ * Body: { text?, location?, tags? }
+ */
+export const editPost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const isAuthor = post.author.toString() === req.user._id.toString();
+    const isCollaborator = (post.collaborators || []).some(
+      (c) => c.toString() === req.user._id.toString()
+    );
+    if (!isAuthor && !isCollaborator) {
+      return res.status(403).json({ message: 'You cannot edit this post' });
+    }
+
+    const { text, location } = req.body;
+    if (text !== undefined) post.text = String(text).slice(0, 3000);
+    if (location !== undefined) post.location = String(location).slice(0, 120);
+
+    // Re-extract hashtags/mentions from the updated caption.
+    const { tags, mentions } = extractTags(post.text);
+    post.tags = tags;
+    post.mentions = mentions;
+
+    post.editedAt = new Date();
+    post.editedBy = req.user._id;
+
+    await post.save();
+
+    const populated = await Post.findById(post._id)
+      .populate('author', AUTHOR_FIELDS)
+      .populate('circle', CIRCLE_FIELDS)
+      .populate('collaborators', AUTHOR_FIELDS);
+
+    return res.json(populated);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /api/posts/:id/archive — archive a post (author only). Hidden from feeds.
+ */
+export const archivePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only the author can archive this post' });
+    }
+
+    post.archivedAt = new Date();
+    await post.save();
+
+    return res.json({ archived: true, id: post._id });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /api/posts/:id/unarchive — restore an archived post (author only).
+ */
+export const unarchivePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only the author can unarchive this post' });
+    }
+
+    post.archivedAt = null;
+    await post.save();
+
+    return res.json({ archived: false, id: post._id });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /api/posts/:id/collaborators — add a co-author (author only).
+ * Body: { userId }
+ */
+export const addCollaborator = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only the author can add collaborators' });
+    }
+
+    const target = await User.findById(userId).select('_id username firstName lastName');
+    if (!target) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const already = (post.collaborators || []).some((c) => c.toString() === userId);
+    if (already) {
+      return res.status(400).json({ message: 'User is already a collaborator' });
+    }
+
+    post.collaborators.push(userId);
+    await post.save();
+
+    const populated = await Post.findById(post._id).populate('collaborators', AUTHOR_FIELDS);
+    return res.json({ added: true, collaborators: populated.collaborators });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * DELETE /api/posts/:id/collaborators/:userId — remove a co-author (author only).
+ */
+export const removeCollaborator = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Only the author can remove collaborators' });
+    }
+
+    const targetId = req.params.userId;
+    if (targetId === post.author.toString()) {
+      return res.status(400).json({ message: 'Cannot remove the post author' });
+    }
+
+    post.collaborators = (post.collaborators || []).filter(
+      (c) => c.toString() !== targetId
+    );
+    await post.save();
+
+    const populated = await Post.findById(post._id).populate('collaborators', AUTHOR_FIELDS);
+    return res.json({ removed: true, collaborators: populated.collaborators });
   } catch (error) {
     return next(error);
   }
@@ -574,6 +747,12 @@ export default {
   getUserPosts,
   getCirclePosts,
   createPost,
+  uploadAudio,
+  editPost,
+  archivePost,
+  unarchivePost,
+  addCollaborator,
+  removeCollaborator,
   sparkPost,
   savePost,
   listSaved,

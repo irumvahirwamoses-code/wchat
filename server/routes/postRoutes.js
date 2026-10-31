@@ -4,6 +4,11 @@ import {
   getUserPosts,
   getCirclePosts,
   createPost,
+  editPost,
+  archivePost,
+  unarchivePost,
+  addCollaborator,
+  removeCollaborator,
   sparkPost,
   savePost,
   listSaved,
@@ -13,6 +18,7 @@ import {
   listComments,
   createComment,
   deleteComment,
+  uploadAudio,
 } from '../controllers/postController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import uploadMiddleware from '../middleware/uploadMiddleware.js';
@@ -28,6 +34,16 @@ router.get('/circle/:chatId', protect, getCirclePosts);
 
 // Create — up to 10 media items (carousel)
 router.post('/', protect, uploadMiddleware.array('media', 10), createPost);
+
+// Standalone audio upload (for attaching music to a post)
+router.post('/media/audio', protect, uploadMiddleware.single('media'), uploadAudio);
+
+// Edit / archive / collaborate
+router.put('/:id', protect, editPost);
+router.post('/:id/archive', protect, archivePost);
+router.post('/:id/unarchive', protect, unarchivePost);
+router.post('/:id/collaborators', protect, addCollaborator);
+router.delete('/:id/collaborators/:userId', protect, removeCollaborator);
 
 // Reactions & actions
 router.post('/:id/spark', protect, sparkPost);

@@ -110,6 +110,19 @@ const postSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    /** Co-authors who can edit / manage this post alongside the author. */
+    collaborators: {
+      type: [ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    /** Optional audio track attached to the post (music). */
+    audio: {
+      url: { type: String, default: '' },
+      title: { type: String, trim: true, default: '' },
+      artist: { type: String, trim: true, default: '' },
+      duration: { type: Number, default: 0 },
+    },
     /** Bookmarks (Wchat "Saved"). */
     savedBy: {
       type: [ObjectId],
@@ -118,6 +131,22 @@ const postSchema = new mongoose.Schema(
     /** Set when the author pins the post to their profile grid (max 6). */
     pinnedAt: {
       type: Date,
+      default: null,
+    },
+    /** When set, the post is hidden from feeds but not deleted (archived). */
+    archivedAt: {
+      type: Date,
+      default: null,
+    },
+    /** Last time the post content was edited (author or collaborator only). */
+    editedAt: {
+      type: Date,
+      default: null,
+    },
+    /** User who performed the last edit. */
+    editedBy: {
+      type: ObjectId,
+      ref: 'User',
       default: null,
     },
   },
@@ -131,6 +160,8 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ createdAt: -1 });
 postSchema.index({ circle: 1, createdAt: -1 });
 postSchema.index({ author: 1, createdAt: -1 });
+postSchema.index({ archivedAt: 1 });
+postSchema.index({ collaborators: 1 });
 
 postSchema.virtual('sparkCount').get(function () {
   return (this.sparks || []).length;
