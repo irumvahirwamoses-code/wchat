@@ -1,6 +1,7 @@
 import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import Chat from '../models/Chat.js';
+import Message from '../models/Message.js';
 import User from '../models/User.js';
 import Story from '../models/Story.js';
 import { notify, resolveMentions } from '../services/notifications.js';

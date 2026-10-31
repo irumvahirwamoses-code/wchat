@@ -1,46 +1,90 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Music2, Search, Upload, X, CloudUpload } from 'lucide-react'
+import {
+  ChevronRight,
+  Clock,
+  Heart,
+  Music2,
+  Search,
+  Sparkles,
+  Upload,
+  X,
+  CloudUpload,
+  Star,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import api, { getApiError } from '../config/api'
 
 const inputClass =
   'w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-400/60'
 
+const CATEGORIES = [
+  { id: 'for-you', label: 'For You', icon: Sparkles },
+  { id: 'trending', label: 'Trending', icon: Clock },
+  { id: 'genre', label: 'Genres', icon: Star },
+  { id: 'mood', label: 'Moods', icon: Heart },
+]
+
 /**
- * Reusable music picker: search the public catalog, preview a track,
- * upload your own audio, and return { title, artist, url, duration }.
+ * Reusable music picker: search catalog, browse categories/trending/for-you,
+ * preview tracks, select clip start/end, upload your own audio, and save
+ * audio from other people's stories/posts.
  */
-export default function MusicPicker({ value, onChange, onClose, placeholder = 'Search music…' }) {
+export default function MusicPicker({
+  value,
+  onChange,
+  onClose,
+  placeholder = 'Search music…',
+}) {
   const [query, setQuery] = useState('')
-  const [tracks, setTracks] = useState([])
-  const [myTracks, setMyTracks] = useState([])
-  const [uploading, setUploading] = useState(false)
-  const [fileInput, setFileInput] = useState(null)
+  [category, setCategory] = useState('for-you')
+  [genre, setGenre] = useState('')
+  [mood, setMood] = useState('')
+  [tracks, setTracks] = useState([])
+  [myTracks, setMyTracks] = useState([])
+  [genres, setGenres] = useState([])
+  [moods, setMoods] = useState([])
+  [uploading, setUploading] = useState(false)
+  [saving, setSaving] = useState(false)
   [previewUrl, setPreviewUrl] = useState('')
   [audioEl, setAudioEl] = useState(null)
+  [showClipPicker, setShowClipPicker] = useState(false)
+  [clipTrack, setClipTrack] = useState(null)
 
   useEffect(() => {
     fetchCatalog()
+    fetchCategories()
     fetchMyTracks()
   }, [])
 
-  // Debounced catalog search as the user types.
+  // Debounced catalog search / browse.
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
       fetchCatalog()
     }, 250)
     return () => { active = false; clearTimeout(timer) }
-  }, [query])
+  }, [query, category, genre, mood])
 
   const fetchCatalog = async () => {
     try {
-      const { data } = await api.get('/music/catalog', { params: { q: query || undefined } })
+      const params = { q: query || undefined, category, genre: genre || undefined, mood: mood || undefined }
+      const { data } = await api.get('/music/catalog', { params })
       if (typeof window !== 'undefined') {
         setTracks(Array.isArray(data?.tracks) ? data.tracks : [])
       }
     } catch {
       setTracks([])
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await api.get('/music/categories')
+      setGenres(Array.isArray(data?.genres) ? data.genres : [])
+      setMoods(Array.isArray(data?.moods) ? data.moods : [])
+    } catch {
+      setGenres([])
+      setMoods([])
     }
   }
 
@@ -75,17 +119,28 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
   }
 
   const selectTrack = (track) => {
+    setClipTrack(track)
+    setShowClipPicker(true)
+  }
+
+  const confirmClip = (clip) => {
     onChange?.({
-      title: track.title,
-      artist: track.artist,
-      url: track.url,
-      duration: track.duration || 0,
+      title: clip.track.title,
+      artist: clip.track.artist,
+      url: clip.track.url,
+      albumArt: clip.track.albumArt,
+      duration: clip.track.duration,
+      startTime: clip.startTime,
+      endTime: clip.endTime,
+      lyrics: clip.track.lyrics,
     })
-    setPreviewUrl(track.url)
+    setPreviewUrl(clip.track.url)
     if (audioEl) audioEl.pause()
-    const el = new Audio(track.url)
+    const el = new Audio(clip.track.url)
     setAudioEl(el)
     el.play().catch(() => {})
+    setShowClipPicker(false)
+    setClipTrack(null)
   }
 
   const removeMusic = () => {
@@ -93,6 +148,18 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
     setPreviewUrl('')
     audioEl?.pause()
     setAudioEl(null)
+  }
+
+  const saveTrack = async (track) => {
+    setSaving(true)
+    try {
+      await api.post('/music/save', { trackId: track._id })
+      toast.success('Saved to your audio library')
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not save audio'))
+    } finally {
+      setSaving(false)
+    }
   }
 
   const filtered = useMemo(() => {
@@ -103,6 +170,10 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
         t.title.toLowerCase().includes(term) || t.artist.toLowerCase().includes(term)
     )
   }, [query, tracks])
+
+  const isSaved = (track) => {
+    return myTracks.some((t) => String(t._id) === String(track._id))
+  }
 
   return (
     <div className="space-y-3">
@@ -119,6 +190,49 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
         ) : null}
       </div>
 
+      {/* Category tabs */}
+      <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+        {CATEGORIES.map((cat) => {
+          const active = category === cat.id
+          const Icon = cat.icon
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategory(cat.id)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                active
+                  ? 'bg-amber-400/20 border-amber-400/40 text-amber-300'
+                  : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
+              }`}
+            >
+              <Icon size={12} />
+              {cat.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Genre / mood filters when browsing genres/moods */}
+      {(category === 'genre' || category === 'mood') && (
+        <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar mb-2">
+          {(category === 'genre' ? genres : moods).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => (category === 'genre' ? setGenre(g) : setMood(g))}
+              className={`rounded-lg border px-2 py-1 text-[10px] font-medium transition ${
+                (category === 'genre' ? genre === g : mood === g)
+                  ? 'border-amber-400 bg-amber-400/20 text-amber-300'
+                  : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
+              }`}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="relative">
         <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-zinc-500" />
         <input
@@ -129,7 +243,7 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
         />
       </div>
 
-      <div className="max-h-40 overflow-y-auto space-y-1">
+      <div className="max-h-48 overflow-y-auto space-y-1">
         {filtered.length > 0 ? (
           filtered.map((track) => (
             <button
@@ -142,9 +256,17 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
                 <span className="block truncate text-[13px] font-medium">{track.title}</span>
                 <span className="block truncate text-[10px] text-zinc-500">
                   {track.artist} {track.source === 'upload' ? '· your upload' : ''}
+                  {track.genre ? ` · ${track.genre}` : ''}
+                  {track.mood ? ` · ${track.mood}` : ''}
                 </span>
               </span>
-              <span className="text-zinc-500">+</span>
+              <span
+                className={`text-xs ${
+                  isSaved(track) ? 'text-amber-400' : 'text-zinc-500'
+                }`}
+              >
+                {isSaved(track) ? <Star size={12} fill="#fbbf24" /> : <Star size={12} />}
+              </span>
             </button>
           ))
         ) : (
@@ -209,6 +331,14 @@ export default function MusicPicker({ value, onChange, onClose, placeholder = 'S
             {audioEl?.paused ? <Music2 size={14} className="text-amber-400" /> : <Music2 size={14} className="text-zinc-500" />}
           </button>
         </div>
+      )}
+
+      {showClipPicker && clipTrack && (
+        <ClipSelection
+          track={clipTrack}
+          onConfirm={confirmClip}
+          onClose={() => setShowClipPicker(false)}
+        />
       )}
     </div>
   )

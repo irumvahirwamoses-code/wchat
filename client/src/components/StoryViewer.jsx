@@ -9,6 +9,7 @@ import {
   Music,
   Send,
   Share2,
+  Star,
   Trash2,
   Volume2,
   VolumeX,
@@ -18,6 +19,7 @@ import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReportModal from './ReportModal'
 import StorySticker from './StoryStickers'
+import MusicSticker from './MusicSticker'
 import api, { getApiError } from '../config/api'
 import { getFileUrl, getId } from '../utils/api'
 import { formatHandle } from '../utils/handle'
@@ -423,13 +425,25 @@ export default function StoryViewer({
           </div>
         ) : null}
 
-        {story.music?.title ? (
-          <div className="absolute bottom-4 left-4 z-10 flex max-w-[45%] items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[11px] text-white backdrop-blur-sm">
-            <Music size={12} className="shrink-0 text-amber-300" />
-            <span className="truncate">
-              {story.music.title}
-              {story.music.artist ? ` · ${story.music.artist}` : ''}
-            </span>
+        {story.music?.url ? (
+          <div className="absolute bottom-4 left-4 z-10 flex max-w-[60%] flex-col gap-1 rounded-xl bg-black/60 px-3 py-2 text-white backdrop-blur-sm">
+            <MusicSticker
+              music={story.music}
+              style="titleLabel"
+              className="max-w-[48%]"
+            />
+            {!isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  toast('Audio saved to your library')
+                }}
+                className="flex items-center gap-1 text-[10px] text-amber-400 hover:text-amber-300"
+              >
+                <Star size={12} fill="#fbbf24" />
+                Save audio
+              </button>
+            )}
           </div>
         ) : null}
 

@@ -65,10 +65,16 @@ export default function PostComposer({ onClose, onCreated }) {
       if (circleId) fd.append('circleId', circleId)
       if (location) fd.append('location', location.trim())
       if (music) {
-        fd.append('musicTitle', music.title)
-        fd.append('musicArtist', music.artist)
-        fd.append('musicUrl', music.url)
-        fd.append('musicDuration', String(music.duration || 0))
+        fd.append('music', JSON.stringify({
+          title: music.title,
+          artist: music.artist,
+          url: music.url,
+          duration: music.duration || 0,
+          albumArt: music.albumArt,
+          startTime: music.startTime,
+          endTime: music.endTime,
+          lyrics: music.lyrics,
+        }))
       }
       files.forEach((f) => fd.append('media', f))
       const { data } = await api.post('/posts', fd)

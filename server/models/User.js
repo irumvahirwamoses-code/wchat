@@ -215,6 +215,8 @@ const userSchema = new mongoose.Schema(
     ],
     /** People this account has blocked (they cannot message or mention them). */
     blocked: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    /** Audio tracks saved from stories/posts for future use. */
+    savedAudio: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MusicTrack' }],
     /** System-wide settings (applied on login + editable in Settings). */
     preferences: {
       theme: {
