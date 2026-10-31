@@ -30,6 +30,12 @@ const noteSchema = new mongoose.Schema(
       trim: true,
       maxlength: [60, 'A note can be 60 characters at most'],
     },
+    /** Optional music attached to the note. */
+    music: {
+      title: { type: String, trim: true, maxlength: [100, 'Music title is too long'] },
+      artist: { type: String, trim: true, maxlength: [100, 'Artist name is too long'] },
+      url: { type: String, trim: true },
+    },
     /** Optional duration (days) — defaults to 24h. */
     expiresAt: {
       type: Date,

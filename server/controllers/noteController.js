@@ -1,6 +1,7 @@
 import Note from '../models/Note.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
+import { parseJson } from '../utils/jsonHelpers.js';
 
 const AUTHOR_FIELDS = 'firstName lastName username profilePicture';
 
@@ -44,7 +45,7 @@ export const listNotes = async (req, res, next) => {
  */
 export const createNote = async (req, res, next) => {
   try {
-    const { text, circleId } = req.body;
+    const { text, circleId, music } = req.body;
     const body = String(text || '').trim();
 
     if (!body) return res.status(400).json({ message: 'A note needs text' });
@@ -65,10 +66,19 @@ export const createNote = async (req, res, next) => {
     // Keep one active note per person/Circle (replaces the previous one).
     await Note.deleteMany({ author: req.user._id, circle });
 
+    const musicObj = parseJson(music, null);
+
     const note = await Note.create({
       author: req.user._id,
       circle,
       text: body,
+      music: musicObj
+        ? {
+            title: String(musicObj.title || '').slice(0, 100),
+            artist: String(musicObj.artist || '').slice(0, 100),
+            url: String(musicObj.url || ''),
+          }
+        : undefined,
       expiresAt: new Date(Date.now() + NOTE_TTL_MS),
     });
 

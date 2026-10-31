@@ -20,6 +20,7 @@ import messageRoutes from './routes/messageRoutes.js';
 import circleRoutes from './routes/circleRoutes.js';
 import collectionRoutes from './routes/collectionRoutes.js';
 import decisionRoutes from './routes/decisionRoutes.js';
+import musicRoutes from './routes/musicRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import storyRoutes from './routes/storyRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
@@ -30,6 +31,7 @@ import {
   getSystemSettings,
   isMaintenanceActive,
 } from './services/systemSettings.js';
+import { seedDefaultCatalog } from './controllers/musicController.js';
 import { CATEGORIES, FEATURES } from './data/categories.js';
 import {
   INTERESTS,
@@ -231,6 +233,7 @@ app.use('/api/circles', circleRoutes);
 app.use('/api/decisions', decisionRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/collections', collectionRoutes);
+app.use('/api/music', musicRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -622,6 +625,13 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Seed the default music catalog (idempotent).
+    try {
+      await seedDefaultCatalog();
+    } catch (seedError) {
+      console.warn(`Could not seed music catalog: ${seedError.message}`);
+    }
 
     // Make sure the public starter Circles exist (idempotent).
     try {

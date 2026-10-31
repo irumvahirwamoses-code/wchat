@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Music2, Plus, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import api, { getApiError } from '../config/api'
 import { useAuth } from '../context/AuthContext'
+import MusicPicker from './MusicPicker'
 
 const MAX = 60
 
 /**
  * Instagram-style Notes row: 60-character status updates pinned above the
- * inbox for 24 hours.
+ * inbox for 24 hours, with optional music.
  */
 export default function NotesBar() {
   const { user } = useAuth()
   const [notes, setNotes] = useState([])
   const [composing, setComposing] = useState(false)
   const [text, setText] = useState('')
+  const [music, setMusic] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [musicOpen, setMusicOpen] = useState(false)
   const inputRef = useRef(null)
 
   const load = async () => {
@@ -45,10 +48,14 @@ export default function NotesBar() {
     if (!body) return
     setBusy(true)
     try {
-      const { data } = await api.post('/notes', { text: body })
+      const { data } = await api.post('/notes', {
+        text: body,
+        music: music ? JSON.stringify(music) : undefined,
+      })
       setNotes((prev) => [data, ...prev.filter((n) => n !== myNote)])
       setComposing(false)
       setText('')
+      setMusic(null)
       toast.success('Note posted for 24 hours')
     } catch (error) {
       toast.error(getApiError(error, 'Could not post note'))
@@ -105,6 +112,14 @@ export default function NotesBar() {
             <div key={note._id} className="flex shrink-0 flex-col items-center gap-1">
               <div className="max-w-[150px] rounded-2xl bg-zinc-800/90 px-2.5 py-1.5">
                 <p className="truncate text-[11px] text-zinc-200">{note.text}</p>
+                {note.music && (
+                  <div className="mt-1 flex items-center gap-1">
+                    <Music2 size={8} className="text-amber-400" />
+                    <span className="text-[9px] text-zinc-400 truncate">
+                      {note.music.title} — {note.music.artist}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 <Avatar src={author.profilePicture} name={`${author.firstName || ''} ${author.lastName || ''}`} size={20} />
@@ -139,6 +154,13 @@ export default function NotesBar() {
           <span className="text-[10px] text-zinc-600">
             {MAX - text.length}
           </span>
+          <button
+            type="button"
+            onClick={() => setMusicOpen(true)}
+            className="text-xs text-zinc-400 hover:text-amber-400"
+          >
+            <Music2 size={12} /> Add music
+          </button>
           <button type="button" onClick={() => setComposing(false)} className="text-zinc-500 hover:text-zinc-300">
             <X size={14} />
           </button>
@@ -152,6 +174,17 @@ export default function NotesBar() {
           </button>
         </div>
       ) : null}
+
+      {musicOpen && (
+        <MusicPicker
+          value={music}
+          onChange={(track) => {
+            setMusic(track)
+            setMusicOpen(false)
+          }}
+          placeholder="Search songs…"
+        />
+      )}
     </div>
   )
 }

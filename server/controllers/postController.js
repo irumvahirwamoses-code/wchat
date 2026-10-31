@@ -2,9 +2,11 @@ import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
+import Story from '../models/Story.js';
 import { notify, resolveMentions } from '../services/notifications.js';
 import { fileUrl } from '../middleware/uploadMiddleware.js';
 import Collection from '../models/Collection.js';
+import { parseJson, asBool } from '../utils/jsonHelpers.js';
 
 const AUTHOR_FIELDS =
   'firstName lastName username profilePicture isOnline lastSeen preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
@@ -228,7 +230,7 @@ function mimetypeToType(mimetype, fallback = '') {
  */
 export const createPost = async (req, res, next) => {
   try {
-    const { text = '', circleId, location = '' } = req.body;
+    const { text = '', circleId, location = '', music } = req.body;
     let interests = [];
 
     // multer's `.array()` gives an ARRAY; `.fields()` gives an object keyed by
@@ -264,6 +266,8 @@ export const createPost = async (req, res, next) => {
 
     const { tags, mentions } = extractTags(text);
 
+    const musicObj = parseJson(music, null);
+
     const post = await Post.create({
       author: req.user._id,
       circle: circleId || null,
@@ -277,6 +281,14 @@ export const createPost = async (req, res, next) => {
       tags,
       mentions,
       interests,
+      music: musicObj
+        ? {
+            title: String(musicObj.title || '').slice(0, 100),
+            artist: String(musicObj.artist || '').slice(0, 100),
+            url: String(musicObj.url || ''),
+            duration: Number(musicObj.duration) || 0,
+          }
+        : undefined,
       sparks: [],
       savedBy: [],
       commentCount: 0,
@@ -650,6 +662,137 @@ export const removeCollaborator = async (req, res, next) => {
 };
 
 /**
+ * POST /api/posts/:id/send — send a post to a user as a direct message.
+ * Body: { userId }
+ */
+export const sendPost = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'userId is required' });
+
+    const post = await Post.findById(req.params.id)
+      .populate('author', AUTHOR_FIELDS)
+      .populate('circle', CIRCLE_FIELDS);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const recipient = await User.findById(userId).select('_id firstName lastName username');
+    if (!recipient) return res.status(404).json({ message: 'User not found' });
+    if (String(userId) === String(req.user._id)) {
+      return res.status(400).json({ message: 'You cannot send a post to yourself' });
+    }
+
+    let chat = await Chat.findOne({
+      isGroupChat: false,
+      users: { $all: [req.user._id, userId] },
+    });
+    if (chat && chat.users.length !== 2) chat = null;
+    if (!chat) {
+      chat = await Chat.create({
+        users: [req.user._id, userId],
+        isGroupChat: false,
+      });
+    }
+
+    const message = await Message.create({
+      sender: req.user._id,
+      chat: chat._id,
+      contentType: 'text',
+      content: `Shared a post${post.circle ? ` in ${post.circle?.chatName || 'a Circle'}` : ''}`,
+      seenBy: [req.user._id],
+    });
+
+    // Attach the shared post as a story reference so the client can render it.
+    await Message.updateOne(
+      { _id: message._id },
+      { $set: { sharedPost: post._id, sharedPostKind: 'post' } }
+    );
+
+    const populated = await Message.findById(message._id).populate(
+      'sender',
+      'firstName lastName username profilePicture'
+    );
+
+    const io = req.app.get('io');
+    if (io) io.to(`chat:${chat._id}`).emit('message received', populated);
+
+    await notify(req, {
+      recipient: recipient._id,
+      actor: req.user._id,
+      type: 'message',
+      post: post._id,
+      circle: post.circle || undefined,
+      text: 'shared a post with you',
+    });
+
+    return res.status(201).json({ chatId: chat._id, message: populated });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * POST /api/posts/:id/repost-to-story — reshare an existing post to your story.
+ * Body: { text?, music? }
+ */
+export const repostToStory = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate('author', AUTHOR_FIELDS)
+      .populate('circle', CIRCLE_FIELDS);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    // Don't repost archived posts.
+    if (post.archivedAt) {
+      return res.status(400).json({ message: 'Archived posts cannot be reposted' });
+    }
+
+    const { text, music } = req.body;
+    const musicObj = parseJson(music, null);
+
+    const story = await Story.create({
+      author: req.user._id,
+      circle: null,
+      media: post.media,
+      mediaType: post.mediaType,
+      text: String(text || `Reposting ${post.author?.username || 'a post'}'s post`).slice(0, 500),
+      textStyle: { background: '#111827', color: '#ffffff', font: 'classic' },
+      stickers: [
+        {
+          type: 'link',
+          text: 'View post',
+          url: `${process.env.SITE_URL || ''}/?p=${post._id}`,
+        },
+      ],
+      audience: 'followers',
+      hideFrom: [],
+      allowReplies: true,
+      allowMentions: true,
+      caption: `Reposted from ${post.author?.username || 'a user'}`,
+      music: musicObj
+        ? {
+            title: String(musicObj.title || '').slice(0, 100),
+            artist: String(musicObj.artist || '').slice(0, 100),
+            url: String(musicObj.url || ''),
+          }
+        : post.music,
+      viewers: [],
+      expiresAt: new Date(Date.now() + Story.ttlHours * 60 * 60 * 1000),
+    });
+
+    const populated = await Story.findById(story._id)
+      .populate('author', AUTHOR_FIELDS)
+      .populate('circle', CIRCLE_FIELDS);
+
+    const io = req.app.get('io');
+    if (io) io.emit('story created', { story });
+
+    return res.status(201).json(populated);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
  * GET /api/posts/:id/comments
  */
 export const listComments = async (req, res, next) => {
@@ -753,6 +896,8 @@ export default {
   unarchivePost,
   addCollaborator,
   removeCollaborator,
+  sendPost,
+  repostToStory,
   sparkPost,
   savePost,
   listSaved,

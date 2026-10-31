@@ -14,7 +14,7 @@ import api, { getApiError } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
 import ImageEditor from './ImageEditor'
-import MusicSelector from './MusicSelector'
+import MusicPicker from './MusicPicker'
 
 const MAX_ITEMS = 10
 
@@ -229,12 +229,13 @@ export default function PostComposer({ onClose, onCreated }) {
         />
       )}
       {musicOpen && (
-        <MusicSelector
-          onConfirm={(m) => {
-            setMusic(m)
+        <MusicPicker
+          value={music}
+          onChange={(track) => {
+            setMusic(track)
             setMusicOpen(false)
           }}
-          onClose={() => setMusicOpen(false)}
+          placeholder="Search songs…"
         />
       )}
     </div>

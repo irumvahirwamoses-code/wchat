@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Camera,
@@ -11,7 +11,6 @@ import {
   Lock,
   Music,
   Pencil,
-  Search,
   Shield,
   Type,
   Users,
@@ -28,17 +27,7 @@ import StorySticker, {
   StickerEditor,
   TEXT_BACKGROUNDS,
 } from './StoryStickers'
-
-const MUSIC_CATALOG = [
-  { title: 'Sunrise', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/sunrise.mp3' },
-  { title: 'Night Drive', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/night-drive.mp3' },
-  { title: 'Circle Vibes', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/circle-vibes.mp3' },
-  { title: 'Chill Chat', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/chill-chat.mp3' },
-  { title: 'Reel Flow', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/reel-flow.mp3' },
-  { title: 'Morning Coffee', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/morning-coffee.mp3' },
-  { title: 'Neon City', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/neon-city.mp3' },
-  { title: 'Loops & Beats', artist: 'Wchat Beats', url: 'https://cdn.wchat.app/music/loops-beats.mp3' },
-]
+import MusicPicker from './MusicPicker'
 
 const DRAW_COLORS = ['#ffffff', '#facc15', '#f43f5e', '#38bdf8', '#22c55e', '#000000']
 
@@ -193,7 +182,6 @@ export default function StoryComposer({ onClose, onCreated }) {
   const [busy, setBusy] = useState(false)
 
   const [music, setMusic] = useState(null)
-  const [musicSearch, setMusicSearch] = useState('')
 
   const [audience, setAudience] = useState(user?.preferences?.storyAudience || 'followers')
   const [allowReplies, setAllowReplies] = useState(
@@ -219,15 +207,6 @@ export default function StoryComposer({ onClose, onCreated }) {
   const drawingRef = useRef(false)
   const previewRef = useRef(null)
   const dragRef = useRef(null)
-
-  const filteredMusic = useMemo(() => {
-    const term = musicSearch.trim().toLowerCase()
-    if (!term) return MUSIC_CATALOG
-    return MUSIC_CATALOG.filter(
-      (track) =>
-        track.title.toLowerCase().includes(term) || track.artist.toLowerCase().includes(term)
-    )
-  }, [musicSearch])
 
   useEffect(
     () => () => {
@@ -649,61 +628,11 @@ export default function StoryComposer({ onClose, onCreated }) {
         </div>
 
         {/* Music */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-xs font-medium text-zinc-400">
-            <Music size={14} className="text-amber-400" /> Add music (optional)
-          </label>
-          <div className="relative">
-            <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-zinc-500" />
-            <input
-              value={musicSearch}
-              onChange={(event) => setMusicSearch(event.target.value)}
-              placeholder="Search music…"
-              className={`${inputClass} pl-8`}
-            />
-          </div>
-          {!music ? (
-            <div className="max-h-32 space-y-1 overflow-y-auto">
-              {filteredMusic.map((track) => (
-                <button
-                  key={`${track.title}-${track.artist}`}
-                  type="button"
-                  onClick={() => setMusic(track)}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-left text-xs text-zinc-300 hover:border-zinc-600"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-medium">{track.title}</span>
-                    <span className="block truncate text-[10px] text-zinc-500">
-                      {track.artist}
-                    </span>
-                  </span>
-                  <span className="text-zinc-500">+</span>
-                </button>
-              ))}
-              {filteredMusic.length === 0 ? (
-                <p className="text-[10px] text-zinc-500">No music found</p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs">
-              <Volume2 size={14} className="text-amber-400" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-zinc-100">
-                  {music.title}
-                </span>
-                <span className="block truncate text-[10px] text-zinc-400">{music.artist}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setMusic(null)}
-                className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
-                title="Remove music"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
-        </div>
+        <MusicPicker
+          value={music}
+          onChange={(track) => setMusic(track)}
+          placeholder="Search songs…"
+        />
 
         <select
           value={circleId}

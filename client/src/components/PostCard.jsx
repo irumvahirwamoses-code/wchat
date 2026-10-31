@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Archive,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -10,8 +11,10 @@ import {
   MessageCircle,
   Music2,
   Pin,
+  RefreshCw,
+  Send,
   Share,
-  Bookmark,
+  Share2,
   Trash2,
   Edit3,
   Users,
@@ -154,6 +157,12 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const [reportOpen, setReportOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editedText, setEditedText] = useState(post.text || '')
+  const [showComments, setShowComments] = useState(false)
+  const [comments, setComments] = useState([])
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
+  const [showSendUser, setShowSendUser] = useState(false)
+  const [sendToUser, setSendToUser] = useState('')
 
   const spark = async () => {
     setBusy(true)
@@ -233,6 +242,61 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       toast.success('Post updated')
     } catch (error) {
       toast.error(getApiError(error, 'Could not update post'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const loadComments = async () => {
+    try {
+      const { data } = await api.get(`/posts/${post._id}/comments`)
+      setComments(Array.isArray(data) ? data : [])
+    } catch {
+      setComments([])
+    }
+  }
+
+  const addComment = async () => {
+    if (!replyText.trim()) return
+    setSendingReply(true)
+    try {
+      const { data } = await api.post(`/posts/${post._id}/comments`, {
+        text: replyText.trim(),
+      })
+      setComments((prev) => [...prev, data])
+      setReplyText('')
+      setShowComments(true)
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not add comment'))
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
+  const sendToUserAction = async () => {
+    if (!sendToUser) return
+    setBusy(true)
+    try {
+      const { data } = await api.post(`/posts/${post._id}/send`, {
+        userId: sendToUser,
+      })
+      setShowSendUser(false)
+      setSendToUser('')
+      toast.success('Post sent')
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not send post'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const repostToStoryAction = async () => {
+    setBusy(true)
+    try {
+      await api.post(`/posts/${post._id}/repost-to-story`)
+      toast.success('Added to your story')
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not repost to story'))
     } finally {
       setBusy(false)
     }
@@ -395,7 +459,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         </button>
         <button
           type="button"
-          onClick={() => onCommentClick?.(post)}
+          onClick={() => { setShowComments(true); loadComments() }}
           className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
         >
           <MessageCircle size={18} />
@@ -420,6 +484,22 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           }`}
         >
           <Bookmark size={17} fill={saved ? '#245bff' : 'none'} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowSendUser(true)}
+          title="Send to user"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+        >
+          <Send size={17} />
+        </button>
+        <button
+          type="button"
+          onClick={repostToStoryAction}
+          title="Add to your story"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+        >
+          <RefreshCw size={17} />
         </button>
         {!isMine ? (
           <button
@@ -454,6 +534,58 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         )}
       </footer>
 
+      {/* Inline comments panel */}
+      {showComments && (
+        <div className="border-t border-zinc-800 bg-zinc-950 p-3 max-h-[40vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-zinc-200">Comments</h3>
+            <button
+              type="button"
+              onClick={() => setShowComments(false)}
+              className="text-zinc-500 hover:text-zinc-200"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          {comments.length === 0 ? (
+            <p className="text-center text-[10px] text-zinc-500 py-2">No comments yet</p>
+          ) : (
+            comments.map((c) => {
+              const a = c.author || {}
+              return (
+                <div key={c._id} className="flex gap-2 mb-2">
+                  <Avatar src={a.profilePicture} name={`${a.firstName || ''} ${a.lastName || ''}`} size={28} />
+                  <div className="min-w-0">
+                    <p className="text-xs text-zinc-300">
+                      <span className="font-semibold">{a.username ? `@${a.username}` : a.firstName}</span>{' '}
+                      {c.text}
+                    </p>
+                    <p className="text-[10px] text-zinc-500">{formatTime(c.createdAt)}</p>
+                  </div>
+                </div>
+              )
+            })
+          )}
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-800">
+            <Avatar src={user?.profilePicture} name={`${user?.firstName || ''} ${user?.lastName || ''}`} size={28} />
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Add a comment…"
+              className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none"
+            />
+            <button
+              type="button"
+              onClick={addComment}
+              disabled={sendingReply || !replyText.trim()}
+              className="rounded-full p-1.5 text-zinc-500 hover:text-amber-400 disabled:opacity-40"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {editOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="bg-zinc-950 rounded-2xl p-4 w-full max-w-md border border-zinc-800">
@@ -479,6 +611,38 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
                 className="text-xs px-3 py-1.5 rounded-lg bg-amber-400 text-white disabled:opacity-50"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send to user */}
+      {showSendUser && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-zinc-950 rounded-2xl p-4 w-full max-w-md border border-zinc-800">
+            <h3 className="text-sm font-semibold mb-3">Send post to</h3>
+            <input
+              value={sendToUser}
+              onChange={(e) => setSendToUser(e.target.value)}
+              placeholder="Search users…"
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 mb-3 outline-none focus:border-amber-400/60"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSendUser(false)}
+                className="text-xs text-zinc-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={sendToUserAction}
+                disabled={busy || !sendToUser}
+                className="text-xs px-3 py-1.5 rounded-lg bg-amber-400 text-white disabled:opacity-50"
+              >
+                Send
               </button>
             </div>
           </div>

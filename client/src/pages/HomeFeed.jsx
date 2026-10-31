@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
 import PostCard from '../components/PostCard'
 import PostComposer from '../components/PostComposer'
-import CommentsPanel from '../components/CommentsPanel'
 import StoriesBar from '../components/StoriesBar'
 import StoryComposer from '../components/StoryComposer'
 import StoryViewer from '../components/StoryViewer'
@@ -40,7 +39,6 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const [storyComposerOpen, setStoryComposerOpen] = useState(false)
   const [activeRing, setActiveRing] = useState(null)
   const [activeRingIndex, setActiveRingIndex] = useState(0)
-  const [activePost, setActivePost] = useState(null)
 
   const openStory = (storyRing, index = 0) => {
     setActiveRing(storyRing)
@@ -155,7 +153,6 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
                 key={post._id}
                 post={post}
                 showReason
-                onCommentClick={setActivePost}
                 onDeleted={onDeleted}
               />
             ))}
@@ -207,10 +204,6 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
             loadStories()
           }}
         />
-      ) : null}
-
-      {activePost ? (
-        <CommentsPanel post={activePost} onClose={() => setActivePost(null)} />
       ) : null}
     </div>
   )

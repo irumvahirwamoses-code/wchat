@@ -9,6 +9,8 @@ import {
   unarchivePost,
   addCollaborator,
   removeCollaborator,
+  sendPost,
+  repostToStory,
   sparkPost,
   savePost,
   listSaved,
@@ -44,6 +46,8 @@ router.post('/:id/archive', protect, archivePost);
 router.post('/:id/unarchive', protect, unarchivePost);
 router.post('/:id/collaborators', protect, addCollaborator);
 router.delete('/:id/collaborators/:userId', protect, removeCollaborator);
+router.post('/:id/send', protect, sendPost);
+router.post('/:id/repost-to-story', protect, repostToStory);
 
 // Reactions & actions
 router.post('/:id/spark', protect, sparkPost);
