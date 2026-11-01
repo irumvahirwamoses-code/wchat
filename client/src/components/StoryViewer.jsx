@@ -276,7 +276,38 @@ export default function StoryViewer({
     }
   }
 
-  if (!story) return null
+  if (!story) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        <div className="z-30 px-4 pb-2 pt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={owner.profilePicture}
+              name={`${owner.firstName || ''} ${owner.lastName || ''}`.trim() || owner.username}
+              size={34}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-white">
+                {formatHandle(owner.username)}
+              </p>
+              <p className="text-[10px] text-white/60">No stories</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+            title="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 items-center justify-center text-zinc-500 text-sm">
+          No stories available
+        </div>
+      </div>
+    )
+  }
 
   const renderMedia = () => {
     if (story.mediaType === 'video' && story.media) {

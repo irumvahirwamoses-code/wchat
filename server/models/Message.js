@@ -85,6 +85,18 @@ const messageSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    /** A post shared directly with this user via DM (send post). */
+    sharedPost: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Post',
+      default: null,
+    },
+    /** Kind of shared content: 'post' | 'story' | 'reel' etc. */
+    sharedPostKind: {
+      type: String,
+      enum: ['post', 'story', 'reel'],
+      default: null,
+    },
   },
   {
     timestamps: true,

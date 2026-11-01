@@ -7,6 +7,7 @@ import {
   Search,
   Sparkles,
   Upload,
+  Video,
   X,
   CloudUpload,
   Star,
@@ -49,6 +50,9 @@ export default function MusicPicker({
   [audioEl, setAudioEl] = useState(null)
   [showClipPicker, setShowClipPicker] = useState(false)
   [clipTrack, setClipTrack] = useState(null)
+  [platform, setPlatform] = useState('catalog')
+  [externalTracks, setExternalTracks] = useState([])
+  [externalLoading, setExternalLoading] = useState(false)
 
   useEffect(() => {
     fetchCatalog()
@@ -56,14 +60,39 @@ export default function MusicPicker({
     fetchMyTracks()
   }, [])
 
-  // Debounced catalog search / browse.
+  // Debounced search: catalog or external platform.
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
-      fetchCatalog()
+      if (platform === 'catalog') {
+        fetchCatalog()
+      } else {
+        fetchExternal()
+      }
     }, 250)
     return () => { active = false; clearTimeout(timer) }
-  }, [query, category, genre, mood])
+  }, [query, platform, category, genre, mood])
+
+  const fetchExternal = async () => {
+    const q = query.trim()
+    if (!q) {
+      setExternalTracks([])
+      return
+    }
+    setExternalLoading(true)
+    try {
+      const { data } = await api.get('/music/search', {
+        params: { q, platforms: platform, limit: 30 },
+      })
+      if (typeof window !== 'undefined') {
+        setExternalTracks(Array.isArray(data?.tracks) ? data.tracks : [])
+      }
+    } catch {
+      setExternalTracks([])
+    } finally {
+      setExternalLoading(false)
+    }
+  }
 
   const fetchCatalog = async () => {
     try {
@@ -119,6 +148,11 @@ export default function MusicPicker({
   }
 
   const selectTrack = (track) => {
+    // External tracks link straight to their platform; no clip picker needed.
+    if (track.platform && track.platform !== 'catalog') {
+      confirmClip({ track })
+      return
+    }
     setClipTrack(track)
     setShowClipPicker(true)
   }
@@ -163,13 +197,14 @@ export default function MusicPicker({
   }
 
   const filtered = useMemo(() => {
+    const source = platform === 'catalog' ? tracks : externalTracks
     const term = query.trim().toLowerCase()
-    if (!term) return tracks
-    return tracks.filter(
+    if (!term) return source
+    return source.filter(
       (t) =>
         t.title.toLowerCase().includes(term) || t.artist.toLowerCase().includes(term)
     )
-  }, [query, tracks])
+  }, [query, tracks, externalTracks, platform])
 
   const isSaved = (track) => {
     return myTracks.some((t) => String(t._id) === String(track._id))
@@ -190,16 +225,24 @@ export default function MusicPicker({
         ) : null}
       </div>
 
-      {/* Category tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
-        {CATEGORIES.map((cat) => {
-          const active = category === cat.id
-          const Icon = cat.icon
+      {/* Platform tabs */}
+      <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar mb-2">
+        {[
+          { id: 'catalog', label: 'Catalog', icon: Music2 },
+          { id: 'deezer', label: 'Deezer', icon: Music2 },
+          { id: 'youtube', label: 'YouTube', icon: Video },
+          { id: 'spotify', label: 'Spotify', icon: Star },
+        ].map((p) => {
+          const active = platform === p.id
+          const Icon = p.icon
           return (
             <button
-              key={cat.id}
+              key={p.id}
               type="button"
-              onClick={() => setCategory(cat.id)}
+              onClick={() => {
+                setPlatform(p.id)
+                setQuery('')
+              }}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active
                   ? 'bg-amber-400/20 border-amber-400/40 text-amber-300'
@@ -207,30 +250,57 @@ export default function MusicPicker({
               }`}
             >
               <Icon size={12} />
-              {cat.label}
+              {p.label}
             </button>
           )
         })}
       </div>
 
-      {/* Genre / mood filters when browsing genres/moods */}
-      {(category === 'genre' || category === 'mood') && (
-        <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar mb-2">
-          {(category === 'genre' ? genres : moods).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => (category === 'genre' ? setGenre(g) : setMood(g))}
-              className={`rounded-lg border px-2 py-1 text-[10px] font-medium transition ${
-                (category === 'genre' ? genre === g : mood === g)
-                  ? 'border-amber-400 bg-amber-400/20 text-amber-300'
-                  : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
-              }`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
+      {platform === 'catalog' && (
+        <>
+          {/* Category tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+            {CATEGORIES.map((cat) => {
+              const active = category === cat.id
+              const Icon = cat.icon
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategory(cat.id)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? 'bg-amber-400/20 border-amber-400/40 text-amber-300'
+                      : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
+                >
+                  <Icon size={12} />
+                  {cat.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Genre / mood filters when browsing genres/moods */}
+          {(category === 'genre' || category === 'mood') && (
+            <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar mb-2">
+              {(category === 'genre' ? genres : moods).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => (category === 'genre' ? setGenre(g) : setMood(g))}
+                  className={`rounded-lg border px-2 py-1 text-[10px] font-medium transition ${
+                    (category === 'genre' ? genre === g : mood === g)
+                      ? 'border-amber-400 bg-amber-400/20 text-amber-300'
+                      : 'border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <div className="relative">
@@ -247,7 +317,7 @@ export default function MusicPicker({
         {filtered.length > 0 ? (
           filtered.map((track) => (
             <button
-              key={`${track.title}-${track.artist}-${track.source}`}
+              key={track.id || `${track.title}-${track.artist}`}
               type="button"
               onClick={() => selectTrack(track)}
               className="flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-left text-xs text-zinc-300 hover:border-zinc-600"
@@ -270,7 +340,9 @@ export default function MusicPicker({
             </button>
           ))
         ) : (
-          <p className="text-[10px] text-zinc-500">No music found</p>
+          <p className="text-[10px] text-zinc-500">
+            {externalLoading ? 'Searching…' : 'No music found'}
+          </p>
         )}
       </div>
 

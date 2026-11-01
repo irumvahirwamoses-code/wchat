@@ -709,18 +709,13 @@ export const sendPost = async (req, res, next) => {
       contentType: 'text',
       content: `Shared a post${post.circle ? ` in ${post.circle?.chatName || 'a Circle'}` : ''}`,
       seenBy: [req.user._id],
+      sharedPost: post._id,
+      sharedPostKind: 'post',
     });
 
-    // Attach the shared post as a story reference so the client can render it.
-    await Message.updateOne(
-      { _id: message._id },
-      { $set: { sharedPost: post._id, sharedPostKind: 'post' } }
-    );
-
-    const populated = await Message.findById(message._id).populate(
-      'sender',
-      'firstName lastName username profilePicture'
-    );
+    const populated = await Message.findById(message._id)
+      .populate('sender', 'firstName lastName username profilePicture')
+      .populate('sharedPost', '_id text media mediaType mediaItems author circle');
 
     const io = req.app.get('io');
     if (io) io.to(`chat:${chat._id}`).emit('message received', populated);

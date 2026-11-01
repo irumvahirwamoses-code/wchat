@@ -14,6 +14,7 @@ const populateMessage = (messageId) =>
   Message.findById(messageId)
     .populate('sender', SENDER_FIELDS)
     .populate('reactions.user', SENDER_FIELDS)
+    .populate('sharedPost', '_id text media mediaType mediaItems author circle')
     .populate({
       path: 'replyTo',
       select: 'content contentType fileName sender createdAt',
@@ -50,6 +51,7 @@ export const getMessages = async (req, res, next) => {
       .sort({ createdAt: 1 })
       .populate('sender', SENDER_FIELDS)
       .populate('reactions.user', SENDER_FIELDS)
+      .populate('sharedPost', '_id text media mediaType mediaItems author circle')
       .populate({
         path: 'replyTo',
         select: 'content contentType fileName sender createdAt',

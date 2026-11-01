@@ -86,7 +86,47 @@ function previewOf(message) {
   }
 }
 
-/** Live or last-known position shared into the chat. */
+/** Preview card for a post shared directly into this conversation. */
+function SharedPostCard({ post }) {
+  const author = post.author || {};
+  const authorName =
+    `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username;
+  const items = post.items
+    ? post.items
+    : post.media
+      ? [{ url: post.media, type: post.mediaType || 'image' }]
+      : [];
+  const firstItem = items[0];
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (post._id) window.location.assign(`/?p=${post._id}`);
+      }}
+      className="mb-1.5 flex w-full min-w-[160px] flex-col rounded-lg border-l-2 border-wchat bg-black/15 px-2 py-1 text-left transition hover:bg-black/25"
+    >
+      <span className="truncate text-[10px] font-semibold text-amber-300">
+        Shared a post
+      </span>
+      {authorName && (
+        <span className="truncate text-[10px] text-zinc-400">
+          by {authorName}
+        </span>
+      )}
+      {firstItem ? (
+        <img
+          src={getFileUrl(firstItem.url)}
+          alt="Shared post"
+          className="mt-1 h-20 w-24 rounded-lg object-cover"
+        />
+      ) : null}
+      {post.text && (
+        <p className="mt-1 truncate text-[11px] text-zinc-300">{post.text}</p>
+      )}
+    </button>
+  );
+}
 function LocationCard({ message }) {
   let spot = {}
   try {
@@ -545,35 +585,39 @@ function MessageRow({
           </span>
         ) : null}
 
-        {quoted ? (
-          <button
-            type="button"
-            onClick={jumpToQuoted}
-            className={`mb-1.5 flex w-full min-w-[160px] flex-col rounded-lg border-l-2 px-2 py-1 text-left ${
-              isMine
-                ? 'border-white/60 bg-black/15'
-                : 'border-amber-300 bg-black/20'
-            }`}
-            title="Go to quoted message"
-          >
-            <span
-              className={`truncate text-[10px] font-semibold ${
-                isMine ? 'text-white/90' : 'text-amber-300'
+          {quoted ? (
+            <button
+              type="button"
+              onClick={jumpToQuoted}
+              className={`mb-1.5 flex w-full min-w-[160px] flex-col rounded-lg border-l-2 px-2 py-1 text-left ${
+                isMine
+                  ? 'border-white/60 bg-black/15'
+                  : 'border-amber-300 bg-black/20'
               }`}
+              title="Go to quoted message"
             >
-              {getSenderName(quoted)}
-            </span>
-            <span
-              className={`truncate text-[11px] ${
-                isMine ? 'text-white/70' : 'text-slate-300'
-              }`}
-            >
-              {previewOf(quoted)}
-            </span>
-          </button>
-        ) : null}
+              <span
+                className={`truncate text-[10px] font-semibold ${
+                  isMine ? 'text-white/90' : 'text-amber-300'
+                }`}
+              >
+                {getSenderName(quoted)}
+              </span>
+              <span
+                className={`truncate text-[11px] ${
+                  isMine ? 'text-white/70' : 'text-slate-300'
+                }`}
+              >
+                {previewOf(quoted)}
+              </span>
+            </button>
+          ) : null}
 
-        {isGroup && !isMine ? (
+          {message.sharedPost ? (
+            <SharedPostCard post={message.sharedPost} />
+          ) : null}
+
+          {isGroup && !isMine ? (
           <button
             type="button"
             onClick={() => senderObject && onUserClick?.(senderObject)}

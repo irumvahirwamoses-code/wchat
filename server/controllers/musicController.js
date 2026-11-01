@@ -1,6 +1,7 @@
 import MusicTrack from '../models/MusicTrack.js';
 import User from '../models/User.js';
 import { fileUrl } from '../middleware/uploadMiddleware.js';
+import { searchExternalMusic } from '../services/musicSearch.js';
 
 /** Fallback built-in catalog used when the DB has no tracks yet. */
 const DEFAULT_CATALOG = [
@@ -246,11 +247,31 @@ export const saveTrack = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/music/search?q=&platforms=deezer,youtube,spotify
+ * Search tracks across integrated external music platforms.
+ */
+export const searchExternal = async (req, res, next) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    const platforms = String(req.query.platforms || '').trim() || undefined;
+    const limit = Math.min(Number(req.query.limit) || 20, 50);
+
+    if (!q) return res.json({ tracks: [] });
+
+    const tracks = await searchExternalMusic(q, { platforms, limit });
+    return res.json({ tracks });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   getCatalog,
   getCategories,
   getTrending,
   getForYou,
+  searchExternal,
   uploadTrack,
   getMyTracks,
   saveTrack,

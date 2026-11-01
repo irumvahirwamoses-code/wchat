@@ -35,6 +35,8 @@ export const listChats = async (req, res, next) => {
         .lean(),
       Chat.find({
         users: req.user._id,
+        // Direct messages only — communities/groups live on the Communities tab.
+        isGroupChat: false,
         // Personal Circles are profiles, not conversations — they live in Discover.
         circleType: { $ne: 'personal' },
       })
@@ -80,9 +82,13 @@ export const listChats = async (req, res, next) => {
       })
     );
 
-    // Pinned conversations float to the top, keeping recency order inside each
-    // group.
-    chatsWithLastMessage.sort((a, b) => Number(b.pinned) - Number(a.pinned));
+    // Pinned conversations float to the top, then most recent last-message first.
+    chatsWithLastMessage.sort((a, b) => {
+      if (Number(b.pinned) !== Number(a.pinned)) return Number(b.pinned) - Number(a.pinned);
+      const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
 
     return res.json(chatsWithLastMessage);
   } catch (error) {

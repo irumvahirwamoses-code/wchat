@@ -4,6 +4,7 @@ import {
   getCategories,
   getTrending,
   getForYou,
+  searchExternal,
   uploadTrack,
   getMyTracks,
   saveTrack,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.get('/catalog', protect, getCatalog);
 router.get('/categories', protect, getCategories);
+router.get('/search', protect, searchExternal);
 router.get('/trending', protect, getTrending);
 router.get('/for-you', protect, getForYou);
 router.get('/my', protect, getMyTracks);
