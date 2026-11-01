@@ -20,6 +20,7 @@ import {
   Users,
 } from 'lucide-react'
 import ReportModal from './ReportModal'
+import CommentsPanel from './CommentsPanel'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
@@ -158,6 +159,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const [editOpen, setEditOpen] = useState(false)
   const [editedText, setEditedText] = useState(post.text || '')
   const [showComments, setShowComments] = useState(false)
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false)
   const [comments, setComments] = useState([])
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
@@ -480,7 +482,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         </button>
         <button
           type="button"
-          onClick={() => { setShowComments(true); loadComments() }}
+          onClick={() => { setShowCommentsPanel(true); loadComments() }}
           className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
         >
           <MessageCircle size={18} />
@@ -698,6 +700,10 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           />
         </div>
       ) : null}
+
+      {showCommentsPanel && (
+        <CommentsPanel post={post} onClose={() => setShowCommentsPanel(false)} />
+      )}
     </article>
   )
 }

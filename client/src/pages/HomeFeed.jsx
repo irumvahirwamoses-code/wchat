@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, MessageCircle, Palette, Plus } from 'lucide-react'
+import { Loader2, MessageCircle, Palette, Plus, X } from 'lucide-react'
 import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
@@ -10,6 +10,7 @@ import StoryComposer from '../components/StoryComposer'
 import StoryViewer from '../components/StoryViewer'
 import NotificationBell from '../components/NotificationBell'
 import ParticipationRail from '../components/ParticipationRail'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { applyTheme, getTheme, nextTheme } from '../utils/theme'
 import { filterHidden } from '../utils/contentFilter'
 
@@ -182,28 +183,62 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
 
       {storyComposerOpen ? (
         <Overlay>
-          <StoryComposer
-            onClose={() => setStoryComposerOpen(false)}
-            onCreated={() => {
-              setStoryComposerOpen(false)
-              loadStories()
-            }}
-          />
+          <ErrorBoundary fallback={({ reset }) => (
+            <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+              <h3 className="text-sm font-semibold text-zinc-100 mb-4">Story composer</h3>
+              <p className="text-xs text-zinc-500 mb-4">Unable to load the story composer.</p>
+              <button
+                type="button"
+                onClick={reset}
+                className="rounded-md px-3 py-1 text-xs text-zinc-100 hover:bg-zinc-800"
+              >
+                Try again
+              </button>
+            </div>
+          )}>
+            <StoryComposer
+              onClose={() => setStoryComposerOpen(false)}
+              onCreated={() => {
+                setStoryComposerOpen(false)
+                loadStories()
+              }}
+            />
+          </ErrorBoundary>
         </Overlay>
       ) : null}
 
       {activeRing ? (
-        <StoryViewer
-          ring={activeRing}
-          rings={rings}
-          startIndex={activeRingIndex}
-          currentUser={user}
-          onChanged={loadStories}
-          onClose={() => {
-            setActiveRing(null)
-            loadStories()
-          }}
-        />
+        <ErrorBoundary fallback={({ reset }) => (
+          <div className="fixed inset-0 z-50 flex flex-col bg-black">
+            <div className="z-30 px-4 pb-2 pt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-xs font-semibold text-white">Story</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setActiveRing(null); reset() }}
+                className="rounded-full p-1.5 text-white/80 hover:bg-white/10"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 items-center justify-center text-zinc-500 text-sm">
+              Unable to load story. <button onClick={reset} className="underline">Try again</button>
+            </div>
+          </div>
+        )}>
+          <StoryViewer
+            ring={activeRing}
+            rings={rings}
+            startIndex={activeRingIndex}
+            currentUser={user}
+            onChanged={loadStories}
+            onClose={() => {
+              setActiveRing(null)
+              loadStories()
+            }}
+          />
+        </ErrorBoundary>
       ) : null}
     </div>
   )
