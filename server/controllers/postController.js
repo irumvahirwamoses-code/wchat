@@ -817,13 +817,14 @@ export const listComments = async (req, res, next) => {
  */
 export const createComment = async (req, res, next) => {
   try {
-    const { text } = req.body;
+    const { text, parentComment } = req.body;
     if (!String(text || '').trim()) return res.status(400).json({ message: 'A comment cannot be empty' });
     const post = await Post.findById(req.params.id).select('_id author circle');
     if (!post) return res.status(404).json({ message: 'Post not found' });
     const comment = await Comment.create({
       post: post._id,
       author: req.user._id,
+      parentComment: parentComment || null,
       text: String(text).slice(0, 1000),
     });
     await Post.updateOne({ _id: post._id }, { $inc: { commentCount: 1 } });

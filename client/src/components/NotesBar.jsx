@@ -5,6 +5,7 @@ import Avatar from './Avatar'
 import api, { getApiError } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import MusicPicker from './MusicPicker'
+import ErrorBoundary from './ErrorBoundary'
 
 const MAX = 60
 
@@ -176,14 +177,28 @@ export default function NotesBar() {
       ) : null}
 
       {musicOpen && (
-        <MusicPicker
-          value={music}
-          onChange={(track) => {
-            setMusic(track)
-            setMusicOpen(false)
-          }}
-          placeholder="Search songs…"
-        />
+        <ErrorBoundary fallback={({ reset }) => (
+          <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <h3 className="text-sm font-semibold text-zinc-100 mb-4">Add music</h3>
+            <p className="text-xs text-zinc-500 mb-4">Unable to load music picker.</p>
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-md px-3 py-1 text-xs text-zinc-100 hover:bg-zinc-800"
+            >
+              Try again
+            </button>
+          </div>
+        )}>
+          <MusicPicker
+            value={music}
+            onChange={(track) => {
+              setMusic(track)
+              setMusicOpen(false)
+            }}
+            placeholder="Search songs…"
+          />
+        </ErrorBoundary>
       )}
     </div>
   )

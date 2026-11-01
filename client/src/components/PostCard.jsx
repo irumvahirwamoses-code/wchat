@@ -20,7 +20,6 @@ import {
   Users,
 } from 'lucide-react'
 import ReportModal from './ReportModal'
-import CommentsPanel from './CommentsPanel'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
@@ -158,11 +157,11 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const [reportOpen, setReportOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editedText, setEditedText] = useState(post.text || '')
-  const [showComments, setShowComments] = useState(false)
-  const [showCommentsPanel, setShowCommentsPanel] = useState(false)
+  const [showComments, setShowComments] = useState(true)
   const [comments, setComments] = useState([])
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
+  const [replyingTo, setReplyingTo] = useState(null)
   const [showSendUser, setShowSendUser] = useState(false)
   const [sendToUser, setSendToUser] = useState('')
   const [sendUsers, setSendUsers] = useState([])
@@ -265,16 +264,18 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     try {
       const { data } = await api.post(`/posts/${post._id}/comments`, {
         text: replyText.trim(),
+        parentComment: replyingTo || undefined,
       })
       setComments((prev) => [...prev, data])
       setReplyText('')
-      setShowComments(true)
+      setReplyingTo(null)
     } catch (error) {
       toast.error(getApiError(error, 'Could not add comment'))
     } finally {
       setSendingReply(false)
     }
   }
+
 
   const sendToUserAction = async () => {
     if (!sendToUser) return
@@ -482,7 +483,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         </button>
         <button
           type="button"
-          onClick={() => { setShowCommentsPanel(true); loadComments() }}
+          onClick={() => { setShowComments(true); loadComments() }}
           className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
         >
           <MessageCircle size={18} />
@@ -557,57 +558,143 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         )}
       </footer>
 
-      {/* Inline comments panel */}
-      {showComments && (
-        <div className="border-t border-zinc-800 bg-zinc-950 p-3 max-h-[40vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-zinc-200">Comments</h3>
-            <button
-              type="button"
-              onClick={() => setShowComments(false)}
-              className="text-zinc-500 hover:text-zinc-200"
-            >
-              <X size={14} />
-            </button>
-          </div>
-          {comments.length === 0 ? (
-            <p className="text-center text-[10px] text-zinc-500 py-2">No comments yet</p>
-          ) : (
-            comments.map((c) => {
-              const a = c.author || {}
-              return (
-                <div key={c._id} className="flex gap-2 mb-2">
-                  <Avatar src={a.profilePicture} name={`${a.firstName || ''} ${a.lastName || ''}`} size={28} />
-                  <div className="min-w-0">
-                    <p className="text-xs text-zinc-300">
-                      <span className="font-semibold">{a.username ? `@${a.username}` : a.firstName}</span>{' '}
-                      {c.text}
-                    </p>
-                    <p className="text-[10px] text-zinc-500">{formatTime(c.createdAt)}</p>
+      {/* Inline comments at footer */}
+      <div className="border-t border-zinc-800 bg-zinc-950">
+        <div className="flex items-center justify-between px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setShowComments((v) => !v)}
+            className="flex items-center gap-1 text-xs font-semibold text-zinc-200 hover:text-zinc-100"
+          >
+            <MessageCircle size={14} />
+            <span>Comments ({comments.length})</span>
+          </button>
+        </div>
+
+        {showComments ? (
+          <div className="px-3 py-2">
+            <div className="space-y-2">
+              {comments.length === 0 ? (
+                <p className="text-center text-[10px] text-zinc-500 py-2">No comments yet</p>
+              ) : null}
+
+              {comments.filter((c) => !c.parentComment).map((c) => {
+                const a = c.author || {}
+                const replies = comments.filter((r) => r.parentComment === c._id)
+                const isReplyingToThis = replyingTo === c._id
+
+                return (
+                  <div key={c._id} className="mb-2">
+                    <div className="flex gap-2">
+                      <Avatar src={a.profilePicture} name={`${a.firstName || ''} ${a.lastName || ''}`} size={28} />
+                      <div className="min-w-0">
+                        <p className="text-xs text-zinc-300">
+                          <span className="font-semibold">{a.username ? `@${a.username}` : a.firstName}</span>{' '}
+                          {c.text}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">{formatTime(c.createdAt)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyingTo(c._id)
+                            setReplyText('')
+                          }}
+                          className="text-[10px] text-zinc-500 hover:text-amber-400"
+                        >
+                          Reply
+                        </button>
+                      </div>
+                    </div>
+
+                    {replies.map((r) => {
+                      const ra = r.author || {}
+                      return (
+                        <div key={r._id} className="ml-6 mt-1 border-l border-zinc-800 pl-2 space-y-1">
+                          <div className="flex gap-2">
+                            <Avatar src={ra.profilePicture} name={`${ra.firstName || ''} ${ra.lastName || ''}`} size={24} />
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-zinc-300">
+                                <span className="font-semibold">{ra.username ? `@${ra.username}` : ra.firstName}</span>{' '}
+                                {r.text}
+                              </p>
+                              <p className="text-[9px] text-zinc-500">{formatTime(r.createdAt)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {isReplyingToThis && (
+                      <div className="mt-1 flex items-center gap-2 pl-10">
+                        <input
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Write a reply…"
+                          className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100 placeholder-zinc-500 outline-none focus:border-amber-400/60"
+                        />
+                        <button
+                          type="button"
+                          onClick={addComment}
+                          disabled={sendingReply || !replyText.trim()}
+                          className="rounded-md px-2 py-1 text-[11px] text-zinc-500 hover:text-amber-400 disabled:opacity-40"
+                        >
+                          Send
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setReplyingTo(null); setReplyText('') }}
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )
-            })
-          )}
-          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-800">
-            <Avatar src={user?.profilePicture} name={`${user?.firstName || ''} ${user?.lastName || ''}`} size={28} />
-            <input
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Add a comment…"
-              className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none"
-            />
-            <button
-              type="button"
-              onClick={addComment}
-              disabled={sendingReply || !replyText.trim()}
-              className="rounded-full p-1.5 text-zinc-500 hover:text-amber-400 disabled:opacity-40"
-            >
-              <Send size={16} />
-            </button>
+                )
+              })
+              }
+
+            <div className="mt-3 flex items-center gap-2 border-t border-zinc-800 pt-2">
+              <Avatar src={user?.profilePicture} name={`${user?.firstName || ''} ${user?.lastName || ''}`} size={28} />
+              <input
+                value={replyingTo ? replyText : ''}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder={replyingTo ? 'Write a reply…' : 'Add a comment…'}
+                className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-amber-400/60"
+              />
+              {replyingTo ? (
+                <button
+                  type="button"
+                  onClick={addComment}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="rounded-md px-2.5 py-1.5 text-xs text-zinc-500 hover:text-amber-400 disabled:opacity-40"
+                >
+                  Send
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={addComment}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="rounded-full p-1.5 text-zinc-500 hover:text-amber-400 disabled:opacity-40"
+                >
+                  <Send size={16} />
+                </button>
+              )}
+              {replyingTo && (
+                <button
+                  type="button"
+                  onClick={() => { setReplyingTo(null); setReplyText('') }}
+                  className="text-zinc-500 hover:text-zinc-300"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      )}
+        ) : null}
+      </div>
 
       {editOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -700,10 +787,6 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           />
         </div>
       ) : null}
-
-      {showCommentsPanel && (
-        <CommentsPanel post={post} onClose={() => setShowCommentsPanel(false)} />
-      )}
     </article>
   )
 }

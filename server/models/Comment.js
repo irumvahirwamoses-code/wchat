@@ -16,6 +16,13 @@ const commentSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    /** Parent comment when this is a reply (null for top-level comments). */
+    parentComment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment',
+      default: null,
+      index: true,
+    },
     text: {
       type: String,
       required: [true, 'A comment cannot be empty'],
@@ -31,6 +38,7 @@ const commentSchema = new mongoose.Schema(
 );
 
 commentSchema.index({ post: 1, createdAt: 1 });
+commentSchema.index({ parentComment: 1, createdAt: 1 });
 
 const Comment = mongoose.model('Comment', commentSchema);
 
