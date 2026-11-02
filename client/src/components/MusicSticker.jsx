@@ -146,7 +146,7 @@ export default function MusicSticker({
 
       <audio
         ref={audioRef}
-        src={getFileUrl(music.url)}
+        src={music.previewUrl || music.url}
         preload="metadata"
         onLoadedMetadata={(e) => {
           if (e.currentTarget.duration) {

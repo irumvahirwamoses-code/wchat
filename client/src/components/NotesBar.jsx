@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Music2, Plus, Trash2, X } from 'lucide-react'
+import { Music2, Plus, Trash2, X, Volume2, VolumeX } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import api, { getApiError } from '../config/api'
@@ -21,6 +21,8 @@ export default function NotesBar() {
   const [music, setMusic] = useState(null)
   const [busy, setBusy] = useState(false)
   const [musicOpen, setMusicOpen] = useState(false)
+  const [notePlaying, setNotePlaying] = useState(null)
+  const [noteAudio, setNoteAudio] = useState(null)
   const inputRef = useRef(null)
 
   const load = async () => {
@@ -69,10 +71,37 @@ export default function NotesBar() {
     try {
       await api.delete(`/notes/${id}`)
       setNotes((prev) => prev.filter((n) => n._id !== id))
+      if (notePlaying === id) {
+        noteAudio?.pause()
+        setNotePlaying(null)
+        setNoteAudio(null)
+      }
     } catch (error) {
       toast.error(getApiError(error, 'Could not delete note'))
     }
   }
+
+  const toggleNoteMusic = (note) => {
+    if (!note.music?.previewUrl) return
+    if (notePlaying === note._id) {
+      noteAudio?.pause()
+      setNotePlaying(null)
+      setNoteAudio(null)
+      return
+    }
+    if (noteAudio) noteAudio.pause()
+    const el = new Audio(note.music.previewUrl)
+    setNoteAudio(el)
+    setNotePlaying(note._id)
+    el.play().catch(() => {})
+  }
+
+  // Cleanup note audio on unmount
+  useEffect(() => {
+    return () => {
+      noteAudio?.pause()
+    }
+  }, [])
 
   return (
     <div className="border-b border-zinc-800/80 px-4 py-3">
@@ -119,6 +148,20 @@ export default function NotesBar() {
                     <span className="text-[9px] text-zinc-400 truncate">
                       {note.music.title} — {note.music.artist}
                     </span>
+                    {note.music.previewUrl && (
+                      <button
+                        type="button"
+                        onClick={() => toggleNoteMusic(note)}
+                        className="ml-1 p-0.5 text-zinc-500 hover:text-amber-400"
+                        title={notePlaying === note._id ? 'Pause' : 'Play preview'}
+                      >
+                        {notePlaying === note._id ? (
+                          <Music2 size={10} className="text-amber-400 animate-pulse" />
+                        ) : (
+                          <Music2 size={10} />
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

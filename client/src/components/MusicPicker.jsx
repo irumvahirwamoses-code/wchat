@@ -18,6 +18,8 @@ import api, { getApiError } from '../config/api'
 const inputClass =
   'w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-amber-400/60'
 
+const PLAYABLE_PLATFORMS = new Set(['deezer', 'spotify', 'catalog'])
+
 const CATEGORIES = [
   { id: 'for-you', label: 'For You', icon: Sparkles },
   { id: 'trending', label: 'Trending', icon: Clock },
@@ -53,6 +55,24 @@ export default function MusicPicker({
   const [platform, setPlatform] = useState('catalog')
   const [externalTracks, setExternalTracks] = useState([])
   const [externalLoading, setExternalLoading] = useState(false)
+  const [previewTrackId, setPreviewTrackId] = useState(null)
+  const [previewAudio, setPreviewAudio] = useState(null)
+
+  const previewTrack = (track) => {
+    if (!track.previewUrl) return
+    if (previewAudio) previewAudio.pause()
+    setPreviewTrackId(track.id)
+    const el = new Audio(track.previewUrl)
+    setPreviewAudio(el)
+    el.play().catch(() => {})
+  }
+
+  // Cleanup preview audio on unmount
+  useEffect(() => {
+    return () => {
+      previewAudio?.pause()
+    }
+  }, [])
 
   useEffect(() => {
     fetchCatalog()
@@ -148,6 +168,9 @@ export default function MusicPicker({
   }
 
   const selectTrack = (track) => {
+    if (previewAudio) previewAudio.pause()
+    setPreviewTrackId(null)
+    setPreviewAudio(null)
     // External tracks link straight to their platform; no clip picker needed.
     if (track.platform && track.platform !== 'catalog') {
       confirmClip({ track })
@@ -158,6 +181,9 @@ export default function MusicPicker({
   }
 
   const confirmClip = (clip) => {
+    if (previewAudio) previewAudio.pause()
+    setPreviewTrackId(null)
+    setPreviewAudio(null)
     onChange?.({
       title: clip.track.title,
       artist: clip.track.artist,
@@ -337,6 +363,23 @@ export default function MusicPicker({
               >
                 {isSaved(track) ? <Star size={12} fill="#fbbf24" /> : <Star size={12} />}
               </span>
+              {track.previewUrl && PLAYABLE_PLATFORMS.has(track.platform) ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    previewTrack(track)
+                  }}
+                  className="p-1 text-zinc-500 hover:text-amber-400"
+                  title={previewTrackId === track.id ? 'Pause preview' : 'Preview'}
+                >
+                  {previewTrackId === track.id ? (
+                    <Music2 size={12} className="text-amber-400 animate-pulse" />
+                  ) : (
+                    <Music2 size={12} />
+                  )}
+                </button>
+              ) : null}
             </button>
           ))
         ) : (

@@ -22,8 +22,9 @@ export default function ClipSelection({
   const clipRef = useRef(null)
 
   useEffect(() => {
-    if (track?.url) setPreviewUrl(track.url)
-  }, [track?.url])
+    const src = track?.previewUrl || track?.url
+    if (src) setPreviewUrl(src)
+  }, [track?.previewUrl, track?.url])
 
   useEffect(() => {
     return () => {
