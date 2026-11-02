@@ -256,7 +256,9 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
           posts.length ? (
             posts.map((p) => <PostCard key={p._id} post={p} onDeleted={del} />)
           ) : (
-            <p className="py-10 text-center text-xs text-zinc-600">No posts yet</p>
+            <p className="py-10 text-center text-xs text-zinc-600">
+              {profile?.isPrivate && !isMe ? 'This account is private. Join them to see their posts.' : 'No posts yet'}
+            </p>
           )
         ) : saved.length ? (
           saved.map((p) => <PostCard key={p._id} post={p} onDeleted={delSaved} />)

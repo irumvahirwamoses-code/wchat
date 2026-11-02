@@ -188,6 +188,7 @@ export default function MusicPicker({
       title: clip.track.title,
       artist: clip.track.artist,
       url: clip.track.url,
+      previewUrl: clip.track.previewUrl || '',
       albumArt: clip.track.albumArt,
       duration: clip.track.duration,
       startTime: clip.startTime,

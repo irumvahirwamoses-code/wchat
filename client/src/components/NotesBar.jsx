@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Music2, Plus, Trash2, X, Volume2, VolumeX } from 'lucide-react'
+import { Music2, Plus, Trash2, X, Volume2, VolumeX, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import api, { getApiError } from '../config/api'
@@ -23,12 +23,23 @@ export default function NotesBar() {
   const [musicOpen, setMusicOpen] = useState(false)
   const [notePlaying, setNotePlaying] = useState(null)
   const [noteAudio, setNoteAudio] = useState(null)
+  const [likedNotes, setLikedNotes] = useState({})
   const inputRef = useRef(null)
 
   const load = async () => {
     try {
       const { data } = await api.get('/notes')
-      setNotes(Array.isArray(data) ? data : [])
+      const noteList = Array.isArray(data) ? data : []
+      setNotes(noteList)
+      // Determine which notes the current user has liked.
+      const liked = {}
+      noteList.forEach((n) => {
+        if (Array.isArray(n.likes)) {
+          liked[n._id] = n.likes.some((id) => String(id) === String(user?._id))
+        }
+        if (!n.likeCount) n.likeCount = Array.isArray(n.likes) ? n.likes.length : 0
+      })
+      setLikedNotes(liked)
     } catch {
       /* ignore */
     }
@@ -95,6 +106,20 @@ export default function NotesBar() {
     setNotePlaying(note._id)
     el.play().catch(() => {})
   }
+
+  const toggleLike = async (note) => {
+    try {
+      const { data } = await api.post(`/notes/${note._id}/like`)
+      setLikedNotes((prev) => ({ ...prev, [note._id]: data.liked }))
+      setNotes((prev) =>
+        prev.map((n) => (n._id === note._id ? { ...n, likeCount: data.likes } : n))
+      )
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not like note'))
+    }
+  }
+
+  const reqUserId = () => user?._id || ''
 
   // Cleanup note audio on unmount
   useEffect(() => {
@@ -174,7 +199,17 @@ export default function NotesBar() {
                   <button type="button" onClick={() => remove(note._id)} className="text-zinc-600 hover:text-red-400">
                     <Trash2 size={11} />
                   </button>
-                ) : null}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleLike(note)}
+                    className={`p-0.5 rounded-md transition ${likedNotes[note._id] ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-500 hover:text-amber-400'}`}
+                    title={likedNotes[note._id] ? 'Unlike' : 'Like'}
+                  >
+                    <Heart size={11} fill={likedNotes[note._id] ? '#f59e0b' : 'none'} strokeWidth={likedNotes[note._id] ? 2.2 : 2} />
+                  </button>
+                )}
+                <span className="text-[9px] text-zinc-500">{note.likeCount || 0}</span>
               </div>
             </div>
           )

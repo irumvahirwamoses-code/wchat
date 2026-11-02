@@ -657,7 +657,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             <div className="mt-3 flex items-center gap-2 border-t border-zinc-800 pt-2">
               <Avatar src={user?.profilePicture} name={`${user?.firstName || ''} ${user?.lastName || ''}`} size={28} />
               <input
-                value={replyingTo ? replyText : ''}
+                value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder={replyingTo ? 'Write a reply…' : 'Add a comment…'}
                 className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-amber-400/60"

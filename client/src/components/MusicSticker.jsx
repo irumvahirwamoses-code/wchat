@@ -22,6 +22,7 @@ export default function MusicSticker({
   onToggleMute,
   currentTime = 0,
   duration = 0,
+  autoPlay = false,
 }) {
   if (!music?.url) return null
 
@@ -29,8 +30,15 @@ export default function MusicSticker({
   const lyricsRef = useRef(null)
   const [activeLyricIndex, setActiveLyricIndex] = useState(-1)
   const [volumeMuted, setVolumeMuted] = useState(false)
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false)
 
   const lyrics = Array.isArray(music.lyrics) ? music.lyrics : []
+
+  // Auto-play music when the story opens.
+  useEffect(() => {
+    if (!audioRef.current || !autoPlay || isAutoPlaying) return
+    audioRef.current.play().then(() => setIsAutoPlaying(true)).catch(() => {})
+  }, [autoPlay, isAutoPlaying, audioRef.current])
 
   // Highlight the current lyric line based on playback position.
   useEffect(() => {

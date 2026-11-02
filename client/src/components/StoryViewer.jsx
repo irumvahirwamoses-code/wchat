@@ -462,6 +462,7 @@ export default function StoryViewer({
               music={story.music}
               style="titleLabel"
               className="max-w-[48%]"
+              autoPlay={true}
             />
             {!isOwner && (
               <button

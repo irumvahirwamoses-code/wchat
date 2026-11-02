@@ -106,4 +106,26 @@ export const deleteNote = async (req, res, next) => {
   }
 };
 
-export default { listNotes, createNote, deleteNote };
+/**
+ * POST /api/notes/:id/like
+ */
+export const toggleLikeNote = async (req, res, next) => {
+  try {
+    const note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).json({ message: 'Note not found' });
+
+    const liked = note.likes.some((id) => id.toString() === req.user._id.toString());
+    if (liked) {
+      note.likes.pull(req.user._id);
+    } else {
+      note.likes.push(req.user._id);
+    }
+    await note.save();
+
+    return res.json({ liked: !liked, likes: note.likes.length });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export default { listNotes, createNote, deleteNote, toggleLikeNote };

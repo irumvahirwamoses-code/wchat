@@ -144,6 +144,17 @@ export const getUserPosts = async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = Math.min(Number(req.query.limit) || 10, 30);
 
+    // Private account gate: only approved followers can see posts.
+    const target = await User.findById(userId).select('isPrivate followers').lean();
+    if (!target) return res.status(404).json({ message: 'User not found' });
+    const isPrivate = Boolean(target.isPrivate);
+    const isFollower = Array.isArray(target.followers) && target.followers.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+    if (isPrivate && !isFollower && String(target._id) !== String(req.user._id)) {
+      return res.json({ posts: [], page, limit, total: 0, hasMore: false });
+    }
+
     const myChats = await Chat.find({ users: req.user._id }).select('_id').lean();
     const myChatIds = myChats.map((c) => c._id);
     const theirChats = await Chat.find({ users: userId }).select('_id').lean();

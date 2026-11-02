@@ -41,6 +41,13 @@ const noteSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    /** Users who liked this note. */
+    likes: [
+      {
+        type: ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   { timestamps: true }
 );
