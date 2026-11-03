@@ -1,8 +1,8 @@
-import { Bell, Plus } from 'lucide-react'
-import { PRIMARY_NAV } from '../config/nav'
+import { Bell, MessageCircle, Plus } from 'lucide-react'
+import { PRIMARY_NAV, SECONDARY_NAV } from '../config/nav'
 
 /**
- * Mobile bottom navigation: Home · Explore · **Create** · Reels · Profile.
+ * Mobile bottom navigation: Home · Explore · **Create** · Reels · Profile · Messages.
  * Honours the iOS home-indicator safe area and never exceeds five targets.
  */
 export default function MobileNav({
@@ -12,6 +12,7 @@ export default function MobileNav({
   onOpenNotifications,
   unreadNotifications = 0,
 }) {
+  const secondary = SECONDARY_NAV.filter((item) => item.id === 'chat')
   return (
     <nav className="pb-safe border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur md:hidden">
       <div className="flex justify-between px-2 pb-2 pt-1">
@@ -48,6 +49,30 @@ export default function MobileNav({
             >
               <Icon size={21} strokeWidth={isActive ? 2.4 : 1.9} />
               {item.label}
+            </button>
+          )
+        })}
+        {secondary.map((item) => {
+          const Icon = item.icon
+          const isActive = active === item.id
+          const count = unread || 0
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange?.(item.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex flex-col items-center gap-0.5 py-1.5 text-[10px] font-medium transition relative ${
+                isActive ? 'text-wchat' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Icon size={21} strokeWidth={isActive ? 2.4 : 1.9} />
+              {item.label}
+              {count > 0 ? (
+                <span className="absolute -right-1 -top-1 grid min-w-[12px] place-items-center rounded-full bg-rose-500 px-0.5 text-[8px] font-bold text-white">
+                  {count > 9 ? '9+' : count}
+                </span>
+              ) : null}
             </button>
           )
         })}

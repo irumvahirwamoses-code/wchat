@@ -55,6 +55,14 @@ export function ChatProvider({ children }) {
       const { data } = await api.get('/chats')
       const list = Array.isArray(data) ? data : []
       setChats(list)
+      // Load per-chat unread counts from the server so badges show on app load.
+      const unread = {}
+      list.forEach((chat) => {
+        if (chat.unreadCount && chat.unreadCount > 0) {
+          unread[chat._id] = chat.unreadCount
+        }
+      })
+      setNotifications(unread)
       setSelectedChat((prev) => {
         if (!prev) return prev
         return list.find((c) => c._id === prev._id) || prev

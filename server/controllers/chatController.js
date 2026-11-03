@@ -54,7 +54,7 @@ export const listChats = async (req, res, next) => {
 
     const chatsWithLastMessage = await Promise.all(
       chats.map(async (chat) => {
-        const [lastMessage, pinnedCount] = await Promise.all([
+        const [lastMessage, pinnedCount, unreadCount] = await Promise.all([
           Message.findOne({
             chat: chat._id,
             delivered: { $ne: false },
@@ -64,11 +64,19 @@ export const listChats = async (req, res, next) => {
             .populate('sender', 'firstName lastName username profilePicture')
             .lean(),
           (chat.pinnedMessages || []).length,
+          Message.countDocuments({
+            chat: chat._id,
+            sender: { $ne: req.user._id },
+            seenBy: { $ne: req.user._id },
+            delivered: { $ne: false },
+            $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
+          }),
         ]);
 
         return {
           ...chat,
           lastMessage: lastMessage || null,
+          unreadCount,
           pinned: pinnedChats.includes(chat._id.toString()),
           theme: themeFor.get(chat._id.toString()) || '',
           pinnedCount,
