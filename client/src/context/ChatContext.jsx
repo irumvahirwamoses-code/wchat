@@ -527,6 +527,13 @@ export function ChatProvider({ children }) {
           return seen ? m : { ...m, seenBy: [...(m.seenBy || []), userId] }
         })
       )
+      // Clear the unread badge for this chat now that it is marked seen.
+      setNotifications((prev) => {
+        if (!prev[chatId]) return prev
+        const next = { ...prev }
+        delete next[chatId]
+        return next
+      })
     }
 
     const handleMessageEdited = (updated) => {
