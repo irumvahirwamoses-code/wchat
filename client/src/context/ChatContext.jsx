@@ -33,6 +33,9 @@ export function ChatProvider({ children }) {
   const [notifications, setNotifications] = useState({})
   const [typing, setTyping] = useState({})
   const [joinRequests, setJoinRequests] = useState([])
+  // Chat IDs the user has explicitly opened (badge cleared locally).
+  // fetchChats won't re-add unread counts for these until new activity arrives.
+  const clearedChatIdsRef = useRef(new Set())
   // The message the composer is currently quoting (null when not replying).
   const [replyTo, setReplyTo] = useState(null)
   // Per-chat settings keyed by chat id: { theme, nicknames, pinnedMessages }.
@@ -55,14 +58,16 @@ export function ChatProvider({ children }) {
       const { data } = await api.get('/chats')
       const list = Array.isArray(data) ? data : []
       setChats(list)
-      // Load per-chat unread counts from the server so badges show on app load.
+      // Load per-chat unread counts from the server, but don't re-add badges
+      // for chats the user has already opened and cleared.
       const unread = {}
       list.forEach((chat) => {
+        if (clearedChatIdsRef.current.has(chat._id)) return
         if (chat.unreadCount && chat.unreadCount > 0) {
           unread[chat._id] = chat.unreadCount
         }
       })
-      setNotifications(unread)
+      setNotifications((prev) => ({ ...prev, ...unread }))
       setSelectedChat((prev) => {
         if (!prev) return prev
         return list.find((c) => c._id === prev._id) || prev
@@ -277,6 +282,8 @@ export function ChatProvider({ children }) {
       setReplyTo(null)
       setSelectedChat(chat || null)
       if (chat?._id) {
+        clearedChatIdsRef.current.add(chat._id)
+        // Clear unread badge immediately.
         setNotifications((prev) => {
           if (!prev[chat._id]) return prev
           const next = { ...prev }
@@ -284,13 +291,9 @@ export function ChatProvider({ children }) {
           return next
         })
         socket?.emit('join chat', chat._id)
+        markChatSeen(chat._id)
         fetchChatSettings(chat._id)
-        fetchMessages(chat._id).then((list) => {
-          const hasIncoming = (list || []).some(
-            (m) => getId(m.sender) !== user?._id
-          )
-          if (hasIncoming) markChatSeen(chat._id)
-        })
+        fetchMessages(chat._id)
       }
     },
     [socket, fetchMessages, markChatSeen, fetchChatSettings, user?._id]
