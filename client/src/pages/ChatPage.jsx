@@ -26,6 +26,7 @@ import DiscoverPage from './DiscoverPage'
 import HomeFeed from './HomeFeed'
 import ProfilePage from './ProfilePage'
 import ReelsFeed from './ReelsFeed'
+import NotificationPage from './NotificationPage'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
 import api from '../config/api'
@@ -65,6 +66,7 @@ export default function ChatPage() {
 
   const [tab, setTab] = useState('home')
   const [mobileShowChat, setMobileShowChat] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
 
   /* ------------------------------------------------------------ create flow */
   const [createOpen, setCreateOpen] = useState(false)
@@ -114,6 +116,10 @@ export default function ChatPage() {
         return
       }
       if (next === 'chat') setMobileShowChat(Boolean(selectedChat))
+      if (next === 'notifications') {
+        setNotificationOpen(true)
+        return
+      }
       setTab(next)
     },
     [selectedChat]
@@ -200,6 +206,8 @@ export default function ChatPage() {
             onOpenProfile={openProfileModal}
           />
         )
+      case 'notifications':
+        return null
       case 'chat':
         return (
           <div className="flex h-full min-h-0">
@@ -214,6 +222,7 @@ export default function ChatPage() {
                 onNewGroup={() => setGroupOpen(true)}
                 onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
                 onOpenFeedback={() => setFeedbackOpen(true)}
+                onOpenNotifications={() => setNotificationOpen(true)}
               />
               <NotesBar />
               <ChatList />
@@ -266,12 +275,20 @@ export default function ChatPage() {
         onOpenProfile={() => setTab('profile')}
         onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
         onOpenFeedback={() => setFeedbackOpen(true)}
+        onOpenNotifications={() => setNotificationOpen(true)}
         unreadChat={unreadTotal}
+        unreadNotifications={unreadTotal}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-h-0 flex-1">{tabContent}</main>
-        <MobileNav active={tab} onChange={goTab} unread={unreadTotal} />
+        <MobileNav
+          active={tab}
+          onChange={goTab}
+          unread={unreadTotal}
+          onOpenNotifications={() => setNotificationOpen(true)}
+          unreadNotifications={unreadTotal}
+        />
       </div>
 
           {createOpen ? (
@@ -389,6 +406,10 @@ export default function ChatPage() {
         <Overlay>
           <FeedbackModal onClose={() => setFeedbackOpen(false)} />
         </Overlay>
+      ) : null}
+
+      {notificationOpen ? (
+        <NotificationPage onClose={() => setNotificationOpen(false)} />
       ) : null}
 
       {callState === 'incoming' && incomingCall ? (

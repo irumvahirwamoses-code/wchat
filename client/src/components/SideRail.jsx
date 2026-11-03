@@ -1,4 +1,4 @@
-import { MessageSquareHeart, Palette, Plus, ShieldCheck } from 'lucide-react'
+import { Bell, MessageSquareHeart, Palette, Plus, ShieldCheck } from 'lucide-react'
 import { PRIMARY_NAV, SECONDARY_NAV } from '../config/nav'
 import Logo from './Logo'
 import Avatar from './Avatar'
@@ -19,7 +19,9 @@ export default function SideRail({
   onOpenProfile,
   onOpenAdmin,
   onOpenFeedback,
+  onOpenNotifications,
   unreadChat = 0,
+  unreadNotifications = 0,
 }) {
   const { user } = useAuth()
   const primary = PRIMARY_NAV.filter((item) => !item.action)
@@ -78,6 +80,21 @@ export default function SideRail({
         <div className="my-2 hidden border-t border-zinc-800/80 lg:block" />
 
         {SECONDARY_NAV.map(renderItem)}
+
+        <button
+          type="button"
+          onClick={onOpenNotifications}
+          title="Notifications"
+          className="mt-1 flex w-full items-center gap-3 rounded-xl border border-zinc-800 px-3 py-2.5 text-left text-sm font-medium transition hover:bg-zinc-800/70 hover:text-zinc-100"
+        >
+          <Bell size={22} className="shrink-0" />
+          {unreadNotifications > 0 ? (
+            <span className="absolute -right-1 -top-1 grid min-w-[15px] place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+            </span>
+          ) : null}
+          <span className="hidden lg:inline">Notifications</span>
+        </button>
       </nav>
 
       <div className="flex flex-col gap-1 border-t border-zinc-800/80 px-2 py-3 lg:px-3">

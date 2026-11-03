@@ -12,6 +12,10 @@ import {
   Users,
   Video,
   Zap,
+  Play,
+  Sparkles,
+  Mail,
+  Globe,
 } from 'lucide-react'
 import Logo from '../components/Logo'
 import PromoReel from '../components/PromoReel'
@@ -156,6 +160,22 @@ export default function LandingPage() {
           >
             <ArrowRight size={14} /> Get started
           </Link>
+          {/* Mobile auth buttons — visible on small screens */}
+          <div className="md:hidden flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {}}
+              className="rounded-lg px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 transition border border-zinc-700"
+            >
+              Sign in
+            </button>
+            <Link
+              to="/auth"
+              className="rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-400 shadow-lg shadow-amber-500/25 transition hover:bg-amber-300"
+            >
+              Get started
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -164,21 +184,21 @@ export default function LandingPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
 
         <section className="px-4 py-16 md:py-24 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20 mb-6">
+          <div className="flex items-center justify-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400 border border-amber-500/20 mb-8">
             <span className="relative flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-            Live on Wchat
+            <span>New: Music on Stories & Notes</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
             Where chats<span className="text-amber-400"> become communities</span>
           </h1>
-          <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Wchat is a mobile-first social network built around Circles. Create a community, invite
-            people with a link or QR code, chat in real time, and share Reels, Stories with music,
-            and Library content.
+          <p className="text-xl md:text-2xl text-zinc-400 mb-10 max-w-3xl mx-auto leading-relaxed">
+            Wchat is a mobile-first social network built around Circles. Create a community,
+            invite people with a link or QR code, chat in real time, and share Reels, Stories
+            with music, and Library content.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <div className="relative w-full sm:w-[320px] max-w-[320px] aspect-[9/16] rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-2xl shadow-amber-500/10">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+            <div className="relative w-full sm:w-[340px] max-w-[340px] aspect-[9/16] rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-2xl shadow-amber-500/10">
               <PromoReel />
               <div className="absolute inset-0 flex items-end p-4">
                 <div className="flex items-center gap-2 bg-black/40 px-3 py-2 rounded-full backdrop-blur">
@@ -205,6 +225,24 @@ export default function LandingPage() {
                   Sign in
                 </Link>
               </p>
+            </div>
+          </div>
+
+          {/* Trust stats */}
+          <div className="flex items-center justify-center gap-8 text-zinc-500 text-sm border-y border-zinc-800/40 py-6 mx-auto max-w-xl">
+            <div className="flex items-center gap-2">
+              <Play size={14} className="text-amber-400" />
+              <span>100% free to start</span>
+            </div>
+            <span className="h-4 w-px bg-zinc-800" />
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-amber-400" />
+              <span>Music on Stories & Notes</span>
+            </div>
+            <span className="h-4 w-px bg-zinc-800" />
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={14} className="text-zinc-400" />
+              <span>Private by default</span>
             </div>
           </div>
         </section>

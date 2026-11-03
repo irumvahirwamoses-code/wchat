@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   User,
   Users,
+  X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api, { getApiError } from '../config/api'
@@ -21,7 +22,7 @@ import Avatar from './Avatar'
 import Logo from './Logo'
 import { formatHandle } from '../utils/handle'
 
-export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup, onOpenAdmin, onOpenFeedback }) {
+export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup, onOpenAdmin, onOpenFeedback, onOpenNotifications }) {
   const { user, logout } = useAuth()
   const { selectChat, fetchChats, pendingJoinRequestCount, fetchJoinRequests } =
     useChat()
@@ -33,16 +34,18 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   const [searching, setSearching] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [startingChat, setStartingChat] = useState(null)
+  const [viewingProfile, setViewingProfile] = useState(null)
 
   const containerRef = useRef(null)
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setMenuOpen(false)
-        setSearchOpen(false)
-      }
+  const handleClickOutside = (event) => {
+    if (containerRef.current && !containerRef.current.contains(event.target)) {
+      setMenuOpen(false)
+      setSearchOpen(false)
+      setViewingProfile(null)
     }
+  }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
@@ -91,6 +94,31 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   const handleLogout = () => {
     setMenuOpen(false)
     logout()
+  }
+
+  const viewProfile = (target) => {
+    setViewingProfile(target)
+    setSearchOpen(false)
+    setMenuOpen(false)
+  }
+
+  const openChatWith = async (target) => {
+    if (startingChat) return
+    setStartingChat(target._id)
+    try {
+      const { data } = await api.post('/chats', { userId: target._id })
+      await fetchChats()
+      selectChat(data)
+      setQuery('')
+      setResults([])
+      setSearchOpen(false)
+      setMenuOpen(false)
+      setViewingProfile(null)
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not open that conversation'))
+    } finally {
+      setStartingChat(null)
+    }
   }
 
   const handleOpenProfile = () => {
@@ -224,34 +252,69 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
                 {searching ? 'Searching…' : 'No people found'}
               </p>
             ) : (
-              results.map((result) => (
-                <button
-                  key={result._id}
-                  type="button"
-                  onClick={() => openPrivateChat(result)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800/70"
-                >
-                  <Avatar
-                    src={result.profilePicture}
-                    name={`${result.firstName || ''} ${result.lastName || ''}`}
-                    size={40}
-                    online={onlineUsers.includes(result._id) || result.isOnline}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-zinc-100">
-                      {`${result.firstName || ''} ${result.lastName || ''}`.trim()}
-                    </span>
-                    <span className="block truncate text-xs text-zinc-500">
-                      {formatHandle(result.username)}
-                    </span>
-                  </span>
-                  {startingChat === result._id ? (
-                    <Loader2 size={16} className="animate-spin text-amber-400" />
-                  ) : (
-                    <MessageCircle size={16} className="text-zinc-500" />
-                  )}
-                </button>
-              ))
+              results.map((result) => {
+                const isViewing = viewingProfile?._id === result._id
+                return (
+                  <div
+                    key={result._id}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800/70 border-b border-zinc-800/60 last:border-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => viewProfile(result)}
+                      className="shrink-0"
+                    >
+                      <Avatar
+                        src={result.profilePicture}
+                        name={`${result.firstName || ''} ${result.lastName || ''}`}
+                        size={40}
+                        online={onlineUsers.includes(result._id) || result.isOnline}
+                      />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => viewProfile(result)}
+                        className="w-full text-left"
+                      >
+                        <span className="block truncate text-sm font-medium text-zinc-100">
+                          {`${result.firstName || ''} ${result.lastName || ''}`.trim()}
+                        </span>
+                        <span className="block truncate text-xs text-zinc-500">
+                          {formatHandle(result.username)}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openChatWith(result)
+                        }}
+                        disabled={startingChat === result._id}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-zinc-200 disabled:opacity-50 transition hover:bg-amber-400 hover:text-white"
+                        title="Message"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                      {isViewing ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewingProfile(null)}
+                          className="text-zinc-500 hover:text-zinc-300"
+                          title="Close profile"
+                        >
+                          <X size={14} />
+                        </button>
+                      ) : null}
+                    </div>
+                    {startingChat === result._id && (
+                      <Loader2 size={16} className="animate-spin text-amber-400" />
+                    )}
+                  </div>
+                )
+              })
             )}
           </div>
         ) : null}

@@ -200,6 +200,18 @@ export const createGroupChat = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid circle type' });
     }
 
+    // Prevent duplicate communities with the same name from the same admin.
+    const trimmedName = String(chatName).trim();
+    const existingGroup = await Chat.findOne({
+      chatName: trimmedName,
+      isGroupChat: true,
+      groupAdmin: req.user._id,
+      circleType: { $ne: 'personal' },
+    }).lean();
+    if (existingGroup) {
+      return res.status(409).json({ message: 'A community with this name already exists' });
+    }
+
     const memberIds = [...new Set([...invitees.map((id) => String(id)), req.user._id.toString()])];
 
     const existingMembers = await User.find({ _id: { $in: memberIds } }).select('_id');
