@@ -170,11 +170,12 @@ export const getUserPosts = async (req, res, next) => {
 
     const total = await Post.countDocuments(filter);
     const posts = await Post.find(filter)
-      .sort({ pinnedAt: -1, createdAt: -1 })
+      .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('author', AUTHOR_FIELDS)
-      .populate('circle', CIRCLE_FIELDS);
+      .populate('circle', CIRCLE_FIELDS)
+      .populate('sparks', 'firstName lastName username profilePicture');
 
     return res.json({ posts, page, limit, total, hasMore: page * limit < total });
   } catch (error) {
@@ -204,7 +205,8 @@ export const getCirclePosts = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('author', AUTHOR_FIELDS)
-      .populate('circle', CIRCLE_FIELDS);
+      .populate('circle', CIRCLE_FIELDS)
+      .populate('sparks', 'firstName lastName username profilePicture');
 
     return res.json({ posts, page, limit, total, hasMore: page * limit < total });
   } catch (error) {

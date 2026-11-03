@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   CalendarDays,
+  ChevronRight,
   Eye,
   EyeOff,
   KeyRound,
@@ -25,16 +26,15 @@ import api, { getApiError } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
 import ProfileInsights from './ProfileInsights'
+import FeedbackResultsPage from './FeedbackResultsPage'
 import { formatHandle } from '../utils/handle'
 import { applyTheme, getTheme, isDataSaver, setDataSaver } from '../utils/theme'
 import { setHiddenWords as persistHiddenWords } from '../utils/contentFilter'
-
 const THEMES = [
   { id: 'light', name: 'Light', preview: ['#f3f5fa', '#ffffff', '#245bff'] },
   { id: 'dark', name: 'Dark', preview: ['#09090b', '#18181b', '#38bdf8'] },
   { id: 'midnight', name: 'Midnight', preview: ['#0a0616', '#150d2b', '#6b5bff'] },
 ]
-
 const SECTIONS = [
   { id: 'account', label: 'Account Center', icon: Zap },
   { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -44,19 +44,16 @@ const SECTIONS = [
   { id: 'privacy', label: 'Privacy & safety', icon: Shield },
   { id: 'data', label: 'Data & storage', icon: Wifi },
 ]
-
 const ACCOUNT_LABELS = {
   personal: 'Personal',
   creator: 'Creator',
   business: 'Business',
 }
-
 const MENTION_OPTIONS = [
   { id: 'everyone', label: 'Everyone' },
   { id: 'people-i-follow', label: 'People I follow' },
   { id: 'no-one', label: 'No one' },
 ]
-
 function Toggle({ checked, onChange, label, hint }) {
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4 py-3">
@@ -82,7 +79,6 @@ function Toggle({ checked, onChange, label, hint }) {
     </label>
   )
 }
-
 /** A compact read-only detail row used across the Account Center. */
 function DetailRow({ icon: Icon, label, value }) {
   return (
@@ -93,43 +89,36 @@ function DetailRow({ icon: Icon, label, value }) {
     </li>
   )
 }
-
 export default function Settings({ onClose }) {
   const { user, logout } = useAuth()
   const [section, setSection] = useState('account')
-
   // Appearance & data
   const [theme, setTheme] = useState(getTheme())
   const [dataSaver, setDataSaverState] = useState(isDataSaver())
   const [autoplay, setAutoplay] = useState(true)
   const [highQuality, setHighQuality] = useState(true)
-
   // Notifications
   const [notifyActivity, setNotifyActivity] = useState(true)
   const [notifyChats, setNotifyChats] = useState(true)
-
   // Privacy & safety
   const [readReceipts, setReadReceipts] = useState(true)
   const [dmAnyone, setDmAnyone] = useState(true)
   const [hiddenWords, setHiddenWords] = useState([])
   const [wordDraft, setWordDraft] = useState('')
   const [blocked, setBlocked] = useState([])
-
   // Sharing & reuse
   const [allowRemix, setAllowRemix] = useState(true)
   const [allowShareToStories, setAllowShareToStories] = useState(true)
   const [allowDownload, setAllowDownload] = useState(true)
   const [allowMentions, setAllowMentions] = useState('everyone')
-
   // Password & security
   const [pwCurrent, setPwCurrent] = useState('')
   const [pwNew, setPwNew] = useState('')
   const [pwConfirm, setPwConfirm] = useState('')
   const [pwVisible, setPwVisible] = useState(false)
   const [pwBusy, setPwBusy] = useState(false)
-
   const [saving, setSaving] = useState(false)
-
+  const [feedbackResultsOpen, setFeedbackResultsOpen] = useState(false)
   useEffect(() => {
     api
       .get('/auth/me')
@@ -164,7 +153,6 @@ export default function Settings({ onClose }) {
       .then(({ data }) => setBlocked(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [])
-
   const addWord = () => {
     const word = wordDraft.trim().toLowerCase()
     if (!word) return
@@ -179,14 +167,11 @@ export default function Settings({ onClose }) {
     setHiddenWords((prev) => [...prev, word])
     setWordDraft('')
   }
-
   const removeWord = (word) => setHiddenWords((prev) => prev.filter((w) => w !== word))
-
   const chooseTheme = (id) => {
     setTheme(id)
     applyTheme(id)
   }
-
   const save = async () => {
     setSaving(true)
     setDataSaver(dataSaver)
@@ -215,7 +200,6 @@ export default function Settings({ onClose }) {
       setSaving(false)
     }
   }
-
   const changePassword = async () => {
     if (pwNew.length < 6) {
       toast.error('Your new password must be at least 6 characters')
@@ -238,7 +222,6 @@ export default function Settings({ onClose }) {
       setPwBusy(false)
     }
   }
-
   const unblock = async (id) => {
     try {
       await api.delete(`/auth/block/${id}`)
@@ -248,10 +231,8 @@ export default function Settings({ onClose }) {
       toast.error(getApiError(error, 'Could not unblock'))
     }
   }
-
   const pwInputClass =
     'w-full rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none focus:border-wchat/70'
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4">
       <div className="flex h-[86vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
@@ -300,7 +281,6 @@ export default function Settings({ onClose }) {
             Log out
           </button>
         </aside>
-
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
             <h2 className="text-sm font-semibold text-zinc-100">
@@ -310,7 +290,6 @@ export default function Settings({ onClose }) {
               <X size={16} />
             </button>
           </header>
-
           {/* Mobile section switcher */}
           <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-800 px-3 py-2 sm:hidden">
             {SECTIONS.map((s) => (
@@ -326,7 +305,6 @@ export default function Settings({ onClose }) {
               </button>
             ))}
           </div>
-
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {section === 'appearance' ? (
               <div className="space-y-4">
@@ -358,7 +336,6 @@ export default function Settings({ onClose }) {
                 </div>
               </div>
             ) : null}
-
             {section === 'account' ? (
               <div className="space-y-4">
                 <div className="rounded-xl border border-zinc-800 p-3.5">
@@ -378,7 +355,6 @@ export default function Settings({ onClose }) {
                       {ACCOUNT_LABELS[user?.accountType] || 'Personal'}
                     </span>
                   </div>
-
                   <h3 className="mt-4 text-xs font-semibold text-zinc-300">Personal details</h3>
                   <ul className="mt-1 divide-y divide-zinc-800/60">
                     <DetailRow
@@ -403,7 +379,6 @@ export default function Settings({ onClose }) {
                     <span className="font-medium text-zinc-300">Edit profile</span>.
                   </p>
                 </div>
-
                 <div className="rounded-xl border border-zinc-800 p-3.5">
                   <h3 className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
                     <KeyRound size={13} /> Password &amp; security
@@ -459,7 +434,6 @@ export default function Settings({ onClose }) {
                     </button>
                   </div>
                 </div>
-
                 <div className="rounded-xl border border-zinc-800 p-3.5">
                   <h3 className="text-xs font-semibold text-zinc-300">Account status</h3>
                   <p className="mt-1 text-[11px] text-zinc-500">
@@ -486,7 +460,6 @@ export default function Settings({ onClose }) {
                     </li>
                   </ul>
                 </div>
-
                 <div className="rounded-xl border border-zinc-800 p-3.5">
                   <h3 className="text-xs font-semibold text-zinc-300">Your activity</h3>
                   <ul className="mt-2 space-y-1 text-[11px] text-zinc-500">
@@ -509,6 +482,13 @@ export default function Settings({ onClose }) {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setFeedbackResultsOpen(true)}
+                      className="rounded-lg border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:border-wchat/50 hover:text-wchat"
+                    >
+                      My feedback &amp; replies
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setSection('privacy')}
                       className="rounded-lg border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:border-wchat/50 hover:text-wchat"
                     >
@@ -518,13 +498,11 @@ export default function Settings({ onClose }) {
                 </div>
               </div>
             ) : null}
-
             {section === 'sharing' ? (
               <div className="space-y-4">
                 <p className="text-xs text-zinc-500">
                   Control how other people may reuse the things you post.
                 </p>
-
                 <div className="rounded-xl border border-zinc-800 px-3.5">
                   <div className="divide-y divide-zinc-800/70">
                     <Toggle
@@ -547,7 +525,6 @@ export default function Settings({ onClose }) {
                     />
                   </div>
                 </div>
-
                 <div className="rounded-xl border border-zinc-800 p-3.5">
                   <h3 className="block text-xs font-semibold text-zinc-300">Who can @mention you</h3>
                   <p className="mt-1 text-[11px] text-zinc-500">
@@ -566,16 +543,13 @@ export default function Settings({ onClose }) {
                     ))}
                   </select>
                 </div>
-
                 <p className="text-[11px] text-zinc-600">
                   These controls apply across Wchat. You can still share and download your own
                   content.
                 </p>
               </div>
             ) : null}
-
             {section === 'insights' ? <ProfileInsights /> : null}
-
             {section === 'data' ? (
               <div className="divide-y divide-zinc-800/70">
                 <Toggle
@@ -598,7 +572,6 @@ export default function Settings({ onClose }) {
                 />
               </div>
             ) : null}
-
             {section === 'notifications' ? (
               <div className="divide-y divide-zinc-800/70">
                 <Toggle
@@ -618,7 +591,6 @@ export default function Settings({ onClose }) {
                 </p>
               </div>
             ) : null}
-
             {section === 'privacy' ? (
               <div className="space-y-4">
                 <Toggle
@@ -679,7 +651,6 @@ export default function Settings({ onClose }) {
                     <p className="text-[11px] text-zinc-600">No hidden words yet.</p>
                   )}
                 </div>
-
                 <div>
                   <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-400">
                     <Ban size={13} /> Blocked accounts
@@ -716,7 +687,6 @@ export default function Settings({ onClose }) {
               </div>
             ) : null}
           </div>
-
           <footer className="flex justify-end gap-2 border-t border-zinc-800 px-4 py-2.5">
             <button
               type="button"
@@ -734,9 +704,12 @@ export default function Settings({ onClose }) {
               {saving ? <Loader2 size={13} className="animate-spin" /> : null}
               Save
             </button>
-          </footer>
+            </footer>
+          </div>
         </div>
-      </div>
+      {feedbackResultsOpen && (
+        <FeedbackResultsPage onClose={() => setFeedbackResultsOpen(false)} />
+      )}
     </div>
   )
 }

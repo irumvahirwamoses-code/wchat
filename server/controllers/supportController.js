@@ -119,4 +119,49 @@ export const submitReport = async (req, res, next) => {
   }
 };
 
-export default { submitFeedback, myFeedback, submitReport };
+/** PATCH /api/support/feedback/:id/reply  (admin only) */
+export const replyFeedback = async (req, res, next) => {
+  try {
+    if (!req.user?.isSuperAdmin) {
+      return res.status(403).json({ message: 'Admin only' });
+    }
+    const { reply } = req.body;
+    if (!String(reply || '').trim()) {
+      return res.status(400).json({ message: 'Reply is required' });
+    }
+    const feedback = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      {
+        adminReply: String(reply).trim(),
+        status: 'resolved',
+        resolvedBy: req.user._id,
+        resolvedAt: new Date(),
+      },
+      { new: true }
+    ).lean();
+    if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+    return res.json({ message: 'Reply sent', feedback });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/** GET /api/support/feedback/admin  (admin: all feedback) */
+export const adminFeedback = async (req, res, next) => {
+  try {
+    if (!req.user?.isSuperAdmin) {
+      return res.status(403).json({ message: 'Admin only' });
+    }
+    const feedback = await Feedback.find()
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .populate('user', 'firstName lastName username profilePicture')
+      .populate('resolvedBy', 'firstName lastName username')
+      .lean();
+    return res.json({ feedback });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export default { submitFeedback, myFeedback, submitReport, replyFeedback, adminFeedback };

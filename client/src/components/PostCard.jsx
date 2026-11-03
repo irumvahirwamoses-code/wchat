@@ -478,8 +478,20 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             sparked ? 'text-wchat' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
+          {post.sparks?.slice(0, 2).map((s) => (
+            <img
+              key={getId(s)}
+              src={getFileUrl(s.profilePicture)}
+              alt={s.username || s.firstName}
+              className="h-5 w-5 shrink-0 rounded-full border border-zinc-800 bg-zinc-800"
+              title={`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.username}
+            />
+          ))}
           <Heart size={18} fill={sparked ? '#245bff' : 'none'} strokeWidth={sparked ? 2.2 : 2} />
           {sparks}
+          {post.sparks && post.sparks.length > 2 && (
+            <span className="text-[10px] text-zinc-500 ml-1">+{post.sparks.length - 2}</span>
+          )}
         </button>
         <button
           type="button"

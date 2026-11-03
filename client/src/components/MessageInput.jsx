@@ -22,6 +22,7 @@ import { getLastMessagePreview, getSenderName } from '../utils/api'
 import EmojiPicker from './EmojiPicker'
 import LiveLocationModal from './LiveLocationModal'
 import VoiceRecorder from './VoiceRecorder'
+import ImageEditor from './ImageEditor'
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25 MB
 
@@ -40,6 +41,9 @@ export default function MessageInput({ chatId }) {
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [scheduleAt, setScheduleAt] = useState('')
   const [liveOpen, setLiveOpen] = useState(false)
+  const [imageEditOpen, setImageEditOpen] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState(null)
+  const [pendingContentType, setPendingContentType] = useState(null)
 
   const textareaRef = useRef(null)
   const typingTimerRef = useRef(null)
@@ -178,6 +182,13 @@ export default function MessageInput({ chatId }) {
       toast.error('That file is larger than 25 MB')
       return
     }
+    // Images go through the editor first; other types send directly.
+    if (contentType === 'image') {
+      setImageToEdit(file)
+      setPendingContentType(contentType)
+      setImageEditOpen(true)
+      return
+    }
     setUploading(contentType)
     try {
       const formData = new FormData()
@@ -189,6 +200,25 @@ export default function MessageInput({ chatId }) {
       setReplyTo(null)
     } catch (error) {
       toast.error(getApiError(error, `Could not send the ${contentType}`))
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  const confirmImageEdit = async (editedFile) => {
+    setImageEditOpen(false)
+    setImageToEdit(null)
+    setUploading('image')
+    try {
+      const formData = new FormData()
+      formData.append('chatId', chatId)
+      formData.append('contentType', 'image')
+      formData.append('file', editedFile)
+      if (replyTo?._id) formData.append('replyTo', replyTo._id)
+      await sendMessage(formData)
+      setReplyTo(null)
+    } catch (error) {
+      toast.error(getApiError(error, 'Could not send the image'))
     } finally {
       setUploading(null)
     }
@@ -411,6 +441,17 @@ export default function MessageInput({ chatId }) {
       {liveOpen ? (
         <LiveLocationModal chatId={chatId} onClose={() => setLiveOpen(false)} />
       ) : null}
+
+      {imageEditOpen && imageToEdit && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onConfirm={confirmImageEdit}
+          onClose={() => {
+            setImageEditOpen(false)
+            setImageToEdit(null)
+          }}
+        />
+      )}
     </div>
   )
 }

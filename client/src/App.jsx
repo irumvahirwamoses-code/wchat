@@ -10,6 +10,7 @@ import JoinCirclePage from './pages/JoinCirclePage'
 import LandingPage from './pages/LandingPage'
 import MaintenancePage from './pages/MaintenancePage'
 import OnboardingPage from './pages/OnboardingPage'
+import ProfilePage from './pages/ProfilePage'
 import api from './config/api'
 
 function AppRoutes() {
@@ -66,7 +67,6 @@ function AppRoutes() {
           )
         }
       />
-      <Route path="/join/:code" element={<JoinCirclePage />} />
       <Route
         path="/"
         element={
@@ -79,6 +79,8 @@ function AppRoutes() {
           )
         }
       />
+      <Route path="/join/:code" element={<JoinCirclePage />} />
+      <Route path="/user/:userId" element={<ProfilePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

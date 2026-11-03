@@ -75,6 +75,7 @@ export default function StoryViewer({
   const [paused, setPaused] = useState(false)
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
+  const [replyFocused, setReplyFocused] = useState(false)
   const [videoMuted, setVideoMuted] = useState(true)
   const [showReport, setShowReport] = useState(false)
   const [liked, setLiked] = useState(false)
@@ -560,6 +561,14 @@ export default function StoryViewer({
               >
                 <input
                   value={reply}
+                  onFocus={() => {
+                    setReplyFocused(true)
+                    setPaused(true)
+                  }}
+                  onBlur={() => {
+                    setReplyFocused(false)
+                    setPaused(false)
+                  }}
                   onChange={(event) => setReply(event.target.value)}
                   maxLength={500}
                   placeholder={`Reply to ${formatHandle(owner.username)}…`}

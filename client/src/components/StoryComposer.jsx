@@ -27,6 +27,7 @@ import StorySticker, {
   StickerEditor,
   TEXT_BACKGROUNDS,
 } from './StoryStickers'
+import ImageEditor from './ImageEditor'
 import MusicPicker from './MusicPicker'
 
 const DRAW_COLORS = ['#ffffff', '#facc15', '#f43f5e', '#38bdf8', '#22c55e', '#000000']
@@ -181,6 +182,9 @@ export default function StoryComposer({ onClose, onCreated }) {
   const [editorType, setEditorType] = useState(null)
   const [busy, setBusy] = useState(false)
 
+  const [imageEditOpen, setImageEditOpen] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState(null)
+
   const [music, setMusic] = useState(null)
 
   const [audience, setAudience] = useState(user?.preferences?.storyAudience || 'followers')
@@ -250,6 +254,13 @@ export default function StoryComposer({ onClose, onCreated }) {
     setMode('media')
     setDrawMode(false)
     setHasDrawing(false)
+  }
+
+  const confirmImageEdit = (editedFile) => {
+    setFile(editedFile)
+    setPreviewUrl(URL.createObjectURL(editedFile))
+    setImageEditOpen(false)
+    setImageToEdit(null)
   }
 
   const clearDrawing = () => {
@@ -573,6 +584,20 @@ export default function StoryComposer({ onClose, onCreated }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => {
+                setImageToEdit(file)
+                setImageEditOpen(true)
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                drawMode
+                  ? 'border-amber-400 bg-amber-400/15 text-amber-300'
+                  : 'border-zinc-800 text-zinc-300'
+              }"
+            >
+              <ImageIcon size={13} /> Edit
+            </button>
+            <button
+              type="button"
               onClick={() => setDrawMode((prev) => !prev)}
               className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
                 drawMode
@@ -752,6 +777,15 @@ export default function StoryComposer({ onClose, onCreated }) {
           </button>
         </div>
       </div>
+
+      {imageEditOpen && imageToEdit && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onConfirm={confirmImageEdit}
+          onClose={() => setImageEditOpen(false)}
+          aspectRatio={9 / 16}
+        />
+      )}
 
       {editorType
         ? createPortal(
