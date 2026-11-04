@@ -20,6 +20,7 @@ import Avatar from './Avatar'
 import ReportModal from './ReportModal'
 import StorySticker from './StoryStickers'
 import MusicSticker from './MusicSticker'
+import StoryViewersModal from './StoryViewersModal'
 import api, { getApiError } from '../config/api'
 import { getFileUrl, getId } from '../utils/api'
 import { formatHandle } from '../utils/handle'
@@ -78,6 +79,7 @@ export default function StoryViewer({
   const [replyFocused, setReplyFocused] = useState(false)
   const [videoMuted, setVideoMuted] = useState(true)
   const [showReport, setShowReport] = useState(false)
+  const [showViewers, setShowViewers] = useState(false)
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
 
@@ -502,11 +504,17 @@ export default function StoryViewer({
       <div className="z-30 border-t border-white/10 bg-black/50 px-3 pb-4 pt-2 backdrop-blur">
         {isOwner ? (
           <div className="flex items-center justify-between text-xs text-white/80">
-            <span>
-              {story.viewers?.length || 0} view
-              {(story.viewers?.length || 0) === 1 ? '' : 's'}
+            <button
+              type="button"
+              onClick={() => setShowViewers(true)}
+              className="flex items-center gap-1.5 hover:text-white transition"
+            >
+              <span>
+                {story.viewers?.length || 0} view
+                {(story.viewers?.length || 0) === 1 ? '' : 's'}
+              </span>
               {likeCount ? ` · ${likeCount} like${likeCount === 1 ? '' : 's'}` : ''}
-            </span>
+            </button>
             <button
               type="button"
               onClick={handleDelete}
@@ -602,6 +610,12 @@ export default function StoryViewer({
           />
         </div>
       ) : null}
+
+      {showViewers && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4">
+          <StoryViewersModal storyId={story._id} onClose={() => setShowViewers(false)} />
+        </div>
+      )}
     </div>
   )
 }

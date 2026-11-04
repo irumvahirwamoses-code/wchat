@@ -227,56 +227,73 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
         </div>
       </header>
 
-      <nav className="flex border-b border-zinc-800/80">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          const on = tab === t.id
-          if ((t.id === 'saved' || t.id === 'insights') && !isMe) return null
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition ${
-                on ? 'border-b-2 border-wchat text-wchat' : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              <Icon size={14} /> {t.label}
-            </button>
-          )
-        })}
-      </nav>
+      <div className="flex min-w-0 flex-1 flex-col md:flex-row">
+        <SideRail
+          active="profile"
+          onChange={() => {}}
+          onNewPost={() => setStoryComposerOpen(true)}
+          onOpenProfile={() => {}}
+          onOpenAdmin={null}
+          onOpenFeedback={() => {}}
+          unreadChat={0}
+          unreadNotifications={0}
+          className="w-[64px] md:w-[256px] flex-shrink-0"
+        />
 
-      <main className="mx-auto w-full max-w-2xl space-y-3 py-4">
-        {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-wchat" size={18} />
-          </div>
-        ) : tab === 'insights' ? (
-          <div className="px-4">
-            <ProfileInsights />
-          </div>
-        ) : tab === 'posts' ? (
-          posts.length ? (
-            posts.map((p) => <PostCard key={p._id} post={p} onDeleted={del} />)
-          ) : (
-            <p className="py-10 text-center text-xs text-zinc-600">
-              {profile?.isPrivate && !isMe ? 'This account is private. Join them to see their posts.' : 'No posts yet'}
-            </p>
-          )
-        ) : saved.length ? (
-          saved.map((p) => <PostCard key={p._id} post={p} onDeleted={delSaved} />)
-        ) : (
-          <p className="py-10 text-center text-xs text-zinc-600">Nothing saved yet</p>
-        )}
-      </main>
+        <div className="min-w-0 flex-1 flex-col">
+          <nav className="flex border-b border-zinc-800/80 flex-shrink-0">
+            {TABS.map((t) => {
+              const Icon = t.icon
+              const on = tab === t.id
+              if ((t.id === 'saved' || t.id === 'insights') && !isMe) return null
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition ${
+                    on ? 'border-b-2 border-wchat text-wchat' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <Icon size={14} /> {t.label}
+                </button>
+              )
+            })}
+          </nav>
+
+          <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="animate-spin text-wchat" size={18} />
+              </div>
+            ) : tab === 'insights' ? (
+              <div className="px-4">
+                <ProfileInsights />
+              </div>
+            ) : tab === 'posts' ? (
+              posts.length ? (
+                posts.map((p) => <PostCard key={p._id} post={p} onDeleted={del} />)
+              ) : (
+                <p className="py-10 text-center text-xs text-zinc-600">
+                  {profile?.isPrivate && !isMe ? 'This account is private. Join them to see their posts.' : 'No posts yet'}
+                </p>
+              )
+            ) : saved.length ? (
+              saved.map((p) => <PostCard key={p._id} post={p} onDeleted={delSaved} />)
+            ) : (
+              <p className="py-10 text-center text-xs text-zinc-600">Nothing saved yet</p>
+            )}
+          </main>
+          <MobileNav active="profile" onChange={() => {}} />
+        </div>
+      </div>
 
       {socialOpen ? (
         <ProfileSocial
           userId={targetId}
           initialTab={socialTab}
           onClose={() => setSocialOpen(false)}
-          onOpenProfile={onOpenProfile}
+          onOpenProfile={() => {}}
         />
       ) : null}
 
@@ -288,19 +305,6 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
           onCreated={() => setStoryComposerOpen(false)}
         />
       )}
-
-      <SideRail
-        active="profile"
-        onChange={() => {}}
-        onNewPost={() => setStoryComposerOpen(true)}
-        onOpenProfile={() => {}}
-        onOpenAdmin={null}
-        onOpenFeedback={() => {}}
-        unreadChat={0}
-        unreadNotifications={0}
-      />
-
-      <MobileNav active="profile" onChange={() => {}} />
     </div>
   )
 }
