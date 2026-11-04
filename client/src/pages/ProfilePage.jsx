@@ -12,6 +12,7 @@ import ProfileSocial from '../components/ProfileSocial'
 import SettingsPanel from '../components/Settings'
 import SideRail from '../components/SideRail'
 import MobileNav from '../components/MobileNav'
+import EditProfileModal from '../components/EditProfileModal'
 import { formatHandle } from '../utils/handle'
 import { getId } from '../utils/api'
 
@@ -38,6 +39,7 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [storyComposerOpen, setStoryComposerOpen] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   useEffect(() => {
     document.title = 'Profile | Wchat'
@@ -123,7 +125,7 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
                   <>
                     <button
                       type="button"
-                      onClick={() => onEdit?.(profile)}
+                      onClick={() => setEditProfileOpen(true)}
                       className="rounded-lg border border-zinc-800 px-3 py-1.5 text-[11px] font-semibold text-zinc-300 transition hover:border-wchat/50 hover:text-wchat"
                     >
                       Edit profile
@@ -228,17 +230,19 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
       </header>
 
       <div className="flex min-w-0 flex-1 flex-col md:flex-row">
-        <SideRail
-          active="profile"
-          onChange={() => {}}
-          onNewPost={() => setStoryComposerOpen(true)}
-          onOpenProfile={() => {}}
-          onOpenAdmin={null}
-          onOpenFeedback={() => {}}
-          unreadChat={0}
-          unreadNotifications={0}
-          className="w-[64px] md:w-[256px] flex-shrink-0"
-        />
+        <div className="hidden md:flex">
+          <SideRail
+            active="profile"
+            onChange={() => {}}
+            onNewPost={() => setStoryComposerOpen(true)}
+            onOpenProfile={() => {}}
+            onOpenAdmin={null}
+            onOpenFeedback={() => {}}
+            unreadChat={0}
+            unreadNotifications={0}
+            className="w-[64px] md:w-[256px] flex-shrink-0"
+          />
+        </div>
 
         <div className="min-w-0 flex-1 flex-col">
           <nav className="flex border-b border-zinc-800/80 flex-shrink-0">
@@ -304,6 +308,10 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
           onClose={() => setStoryComposerOpen(false)}
           onCreated={() => setStoryComposerOpen(false)}
         />
+      )}
+
+      {editProfileOpen && (
+        <EditProfileModal onClose={() => setEditProfileOpen(false)} />
       )}
     </div>
   )
