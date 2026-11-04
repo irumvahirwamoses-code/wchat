@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { BarChart3, Bookmark, Grid3x3, Link2, Loader2, Lock, Settings } from 'lucide-react'
 import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +10,8 @@ import StoryComposer from '../components/StoryComposer'
 import ProfileInsights from '../components/ProfileInsights'
 import ProfileSocial from '../components/ProfileSocial'
 import SettingsPanel from '../components/Settings'
+import SideRail from '../components/SideRail'
+import MobileNav from '../components/MobileNav'
 import { formatHandle } from '../utils/handle'
 import { getId } from '../utils/api'
 
@@ -18,7 +21,8 @@ const TABS = [
   { id: 'insights', label: 'Insights', icon: BarChart3 },
 ]
 
-export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
+export default function ProfilePage({ onEdit, onOpenProfile }) {
+  const { userId } = useParams()
   const { user } = useAuth()
   const targetId = userId || getId(user)
   const isMe = String(targetId) === String(getId(user))
@@ -284,6 +288,19 @@ export default function ProfilePage({ userId, onEdit, onOpenProfile }) {
           onCreated={() => setStoryComposerOpen(false)}
         />
       )}
+
+      <SideRail
+        active="profile"
+        onChange={() => {}}
+        onNewPost={() => setStoryComposerOpen(true)}
+        onOpenProfile={() => {}}
+        onOpenAdmin={null}
+        onOpenFeedback={() => {}}
+        unreadChat={0}
+        unreadNotifications={0}
+      />
+
+      <MobileNav active="profile" onChange={() => {}} />
     </div>
   )
 }

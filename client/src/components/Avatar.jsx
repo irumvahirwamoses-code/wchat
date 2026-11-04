@@ -14,7 +14,7 @@ export default function Avatar({
 }) {
   const dimension = typeof size === 'number' ? `${size}px` : size
   const fontSize = Math.max(11, Math.round(Number(size) * 0.36) || 14)
-  const [hasImage, setHasImage] = useState(false)
+  const [hasImage, setHasImage] = useState(Boolean(src))
 
   return (
     <div
