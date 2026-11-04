@@ -288,6 +288,7 @@ export default function ChatPage() {
           unread={unreadTotal}
           onOpenNotifications={() => setNotificationOpen(true)}
           unreadNotifications={notificationUnreadCount}
+          className="md:hidden"
         />
       </div>
 

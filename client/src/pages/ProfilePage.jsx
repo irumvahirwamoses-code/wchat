@@ -23,6 +23,7 @@ const TABS = [
 ]
 
 export default function ProfilePage({ onEdit, onOpenProfile }) {
+  const navigate = useNavigate()
   const { userId } = useParams()
   const { user } = useAuth()
   const targetId = userId || getId(user)
@@ -233,9 +234,19 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
         <div className="hidden md:flex">
           <SideRail
             active="profile"
-            onChange={() => {}}
+            onChange={(id) => {
+              if (id === 'create') {
+                setStoryComposerOpen(true)
+                return
+              }
+              if (id === 'profile') {
+                navigate(`/user/${getId(user)}`)
+                return
+              }
+              navigate('/')
+            }}
             onNewPost={() => setStoryComposerOpen(true)}
-            onOpenProfile={() => {}}
+            onOpenProfile={() => navigate(`/user/${getId(user)}`)}
             onOpenAdmin={null}
             onOpenFeedback={() => {}}
             unreadChat={0}
@@ -288,7 +299,7 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
               <p className="py-10 text-center text-xs text-zinc-600">Nothing saved yet</p>
             )}
           </main>
-          <MobileNav active="profile" onChange={() => {}} />
+          <MobileNav active="profile" onChange={() => {}} className="md:hidden" />
         </div>
       </div>
 
