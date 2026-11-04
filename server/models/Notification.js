@@ -9,6 +9,7 @@ export const NOTIFICATION_TYPES = [
   'join',
   'invite',
   'announcement',
+  'feedback',
 ];
 
 /**
@@ -39,6 +40,7 @@ const notificationSchema = new mongoose.Schema(
     },
     post: { type: ObjectId, ref: 'Post' },
     circle: { type: ObjectId, ref: 'Chat' },
+    feedback: { type: ObjectId, ref: 'Feedback' },
     /** Short human-readable sentence (already localised by the caller). */
     text: { type: String, default: '', maxlength: 200 },
     read: { type: Boolean, default: false, index: true },

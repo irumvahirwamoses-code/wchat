@@ -5,6 +5,7 @@ import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import Message from '../models/Message.js';
 import Story from '../models/Story.js';
+import Notification from '../models/Notification.js';
 
 const resolveTargetUser = async (targetType, targetId) => {
   switch (targetType) {
@@ -140,6 +141,25 @@ export const replyFeedback = async (req, res, next) => {
       { new: true }
     ).lean();
     if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
+
+    // Create a notification for the user who submitted the feedback.
+    const notification = await Notification.create({
+      recipient: feedback.user,
+      actor: req.user._id,
+      type: 'feedback',
+      feedback: feedback._id,
+      text: 'replied to your feedback',
+    });
+
+    // Real-time push to the user.
+    const io = req.app.get('io');
+    if (io) {
+      const populated = await Notification.findById(notification._id)
+        .populate('actor', ACTOR_FIELDS)
+        .lean();
+      io.to(`user:${feedback.user}`).emit('notification created', populated);
+    }
+
     return res.json({ message: 'Reply sent', feedback });
   } catch (error) {
     return next(error);

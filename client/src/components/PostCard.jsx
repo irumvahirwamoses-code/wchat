@@ -258,6 +258,10 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     }
   }
 
+  useEffect(() => {
+    loadComments()
+  }, [post._id])
+
   const addComment = async () => {
     if (!replyText.trim()) return
     setSendingReply(true)

@@ -11,6 +11,7 @@ import LandingPage from './pages/LandingPage'
 import MaintenancePage from './pages/MaintenancePage'
 import OnboardingPage from './pages/OnboardingPage'
 import ProfilePage from './pages/ProfilePage'
+import FeedbackResultsPage from './components/FeedbackResultsPage'
 import api from './config/api'
 
 function AppRoutes() {
@@ -81,6 +82,7 @@ function AppRoutes() {
       />
       <Route path="/join/:code" element={<JoinCirclePage />} />
       <Route path="/user/:userId" element={<ProfilePage />} />
+      <Route path="/feedback" element={<FeedbackResultsPage onClose={() => {}} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

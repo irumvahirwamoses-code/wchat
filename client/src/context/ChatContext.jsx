@@ -31,6 +31,7 @@ export function ChatProvider({ children }) {
   const [messages, setMessages] = useState([])
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [notifications, setNotifications] = useState({})
+  const [unreadCount, setUnreadCount] = useState(0)
   const [typing, setTyping] = useState({})
   const [joinRequests, setJoinRequests] = useState([])
   // Chat IDs the user has explicitly opened (badge cleared locally).
@@ -72,6 +73,13 @@ export function ChatProvider({ children }) {
         if (!prev) return prev
         return list.find((c) => c._id === prev._id) || prev
       })
+      // Fetch unread notification count
+      try {
+        const { data } = await api.get('/notifications/unread-count')
+        setUnreadCount(data.count || 0)
+      } catch {
+        /* ignore */
+      }
       return list
     } catch (error) {
       toast.error(getApiError(error, 'Failed to load your chats'))
@@ -556,6 +564,13 @@ export function ChatProvider({ children }) {
       fetchJoinRequests()
     }
 
+    const handleNotificationCreated = (notification) => {
+      if (!notification) return
+      setNotifications((prev) => ({ ...prev, [notification._id]: notification }))
+      setUnreadCount((c) => c + 1)
+      toast('New notification', { icon: '𔔩' })
+    }
+
     socket.on('message received', handleMessageReceived)
     socket.on('new message notification', handleNewMessageNotification)
     socket.on('typing', handleTyping)
@@ -569,6 +584,7 @@ export function ChatProvider({ children }) {
     socket.on('message edited', handleMessageEdited)
     socket.on('message deleted', handleMessageDeleted)
     socket.on('new join request', handleNewJoinRequest)
+    socket.on('notification created', handleNotificationCreated)
 
     return () => {
       socket.off('message received', handleMessageReceived)
@@ -584,6 +600,7 @@ export function ChatProvider({ children }) {
       socket.off('message edited', handleMessageEdited)
       socket.off('message deleted', handleMessageDeleted)
       socket.off('new join request', handleNewJoinRequest)
+      socket.off('notification created', handleNotificationCreated)
       Object.values(typingTimersRef.current).forEach(clearTimeout)
       typingTimersRef.current = {}
     }
@@ -658,6 +675,7 @@ export function ChatProvider({ children }) {
       notifications,
       clearNotification,
       typing,
+      unreadCount,
       joinRequests,
       fetchJoinRequests,
       pendingJoinRequestCount,

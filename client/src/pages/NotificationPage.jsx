@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bell, Loader2, X, ChevronRight, MessageCircle, Heart, AtSign, UserPlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, Loader2, X, ChevronRight, MessageCircle, Heart, AtSign, UserPlus, MessageSquareHeart } from 'lucide-react'
 import api from '../config/api'
 import Avatar from '../components/Avatar'
 import { useAuth } from '../context/AuthContext'
@@ -13,6 +14,7 @@ const ICONS = {
   join: UserPlus,
   invite: UserPlus,
   announcement: Bell,
+  feedback: MessageSquareHeart,
 }
 
 const COLORS = {
@@ -22,9 +24,11 @@ const COLORS = {
   join: 'text-emerald-400',
   invite: 'text-emerald-400',
   announcement: 'text-zinc-400',
+  feedback: 'text-emerald-400',
 }
 
 export default function NotificationPage({ onClose }) {
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -124,7 +128,13 @@ export default function NotificationPage({ onClose }) {
                 <button
                   key={n._id}
                   type="button"
-                  onClick={() => markRead(n._id)}
+                  onClick={() => {
+                    markRead(n._id)
+                    if (n.type === 'feedback' && n.feedback) {
+                      navigate(`/feedback/${n.feedback}`)
+                      onClose()
+                    }
+                  }}
                   className={`flex items-start gap-3 border-b border-zinc-800/60 px-4 py-3.5 text-left transition last:border-0 hover:bg-zinc-900/60 ${
                     n.read ? '' : 'bg-amber-400/5'
                   }`}

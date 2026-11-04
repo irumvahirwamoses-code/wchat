@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ChatBox from '../components/ChatBox'
 import ChatList from '../components/ChatList'
 import CallModal from '../components/CallModal'
@@ -13,8 +14,6 @@ import MeetingModal from '../components/MeetingModal'
 import MobileNav from '../components/MobileNav'
 import NotesBar from '../components/NotesBar'
 import PostComposer from '../components/PostComposer'
-import ProfileModal from '../components/ProfileModal'
-import ReelComposer from '../components/ReelComposer'
 import StoryComposer from '../components/StoryComposer'
 import FeedbackModal from '../components/FeedbackModal'
 import SideDrawer from '../components/SideDrawer'
@@ -42,6 +41,7 @@ import useWebRTC from '../hooks/useWebRTC'
  */
 export default function ChatPage() {
   const { user, isSuperAdmin } = useAuth()
+  const { unreadCount: notificationUnreadCount } = useChat()
 
   useEffect(() => {
     document.title = 'Messages | Wchat'
@@ -89,7 +89,6 @@ export default function ChatPage() {
   const [hubChat, setHubChat] = useState(null)
   const [meetingChat, setMeetingChat] = useState(null)
   const [discoveryOpen, setDiscoveryOpen] = useState(false)
-  const [profileUser, setProfileUser] = useState(null)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
 
   const { selectedChat: activeChat, selectChat: selectChatCtx, fetchChats: refetchChats } =
@@ -134,9 +133,10 @@ export default function ChatPage() {
     [selectChat]
   )
 
+  const navigate = useNavigate()
   const openProfileModal = useCallback((target) => {
-    if (target) setProfileUser(target)
-  }, [])
+    if (target?._id) navigate(`/user/${target._id}`)
+  }, [navigate])
 
   const startCallWith = useCallback(
     (type, target) => {
@@ -277,7 +277,7 @@ export default function ChatPage() {
         onOpenFeedback={() => setFeedbackOpen(true)}
         onOpenNotifications={() => setNotificationOpen(true)}
         unreadChat={unreadTotal}
-        unreadNotifications={unreadTotal}
+        unreadNotifications={notificationUnreadCount}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -287,7 +287,7 @@ export default function ChatPage() {
           onChange={goTab}
           unread={unreadTotal}
           onOpenNotifications={() => setNotificationOpen(true)}
-          unreadNotifications={unreadTotal}
+          unreadNotifications={notificationUnreadCount}
         />
       </div>
 
@@ -389,10 +389,6 @@ export default function ChatPage() {
       ) : null}
 
       {discoveryOpen ? <GroupDiscovery onClose={() => setDiscoveryOpen(false)} /> : null}
-
-      {profileUser ? (
-        <ProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
-      ) : null}
 
       {editProfileOpen ? (
         <EditProfileModal onClose={() => setEditProfileOpen(false)} />
