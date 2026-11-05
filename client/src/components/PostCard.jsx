@@ -23,6 +23,7 @@ import ReportModal from './ReportModal'
 import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
+import { useNavigate } from 'react-router-dom'
 import api, { getApiError } from '../config/api'
 import { getFileUrl, getId } from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -65,7 +66,7 @@ function Carousel({ items }) {
       <img
         src={getFileUrl(only.url)}
         alt={only.fileName || 'Post'}
-        className="max-h-[80vh] w-full object-cover"
+        className="max-h-[80vh] w-full bg-black object-contain"
       />
     )
   }
@@ -77,12 +78,12 @@ function Carousel({ items }) {
       {item.type === 'video' ? (
         <video key={item.url} controls src={getFileUrl(item.url)} className="max-h-[80vh] w-full" />
       ) : (
-        <img
-          key={item.url}
-          src={getFileUrl(item.url)}
-          alt={item.fileName || 'Post'}
-          className="max-h-[80vh] w-full object-contain"
-        />
+          <img
+            key={item.url}
+            src={getFileUrl(item.url)}
+            alt={item.fileName || 'Post'}
+            className="max-h-[80vh] w-full bg-black object-contain"
+          />
       )}
 
       {idx > 0 ? (
@@ -129,6 +130,7 @@ function Carousel({ items }) {
 
 export default function PostCard({ post, onCommentClick, onDeleted, showReason = false }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const author = post.author || {}
   const circle = post.circle || null
   const collaborators = post.collaborators || []
@@ -136,6 +138,10 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     `${author.firstName || ''} ${author.lastName || ''}`.trim() || author.username
   const isMine = getId(author) === user?._id
   const canEdit = isMine || collaborators.some((c) => getId(c) === user?._id)
+
+  const goToProfile = () => {
+    if (author?._id) navigate(`/user/${author._id}`)
+  }
 
   // Sharing & reuse — the author decides what others may do with their content.
   const authorPrefs = author?.preferences || {}
@@ -234,14 +240,17 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   }
 
   const saveEdit = async () => {
+    if (busy) return
     setBusy(true)
     try {
       const { data } = await api.put(`/posts/${post._id}`, {
         text: editedText,
+        mediaItems: editedItems,
       })
       setEditedText(data.text || '')
       setEditOpen(false)
       toast.success('Post updated')
+      onDeleted?.(post._id) // trigger refresh
     } catch (error) {
       toast.error(getApiError(error, 'Could not update post'))
     } finally {
@@ -354,8 +363,13 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   return (
     <article className="mx-auto mb-4 w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/60">
       <header className="flex items-center gap-3 p-4">
-        <Avatar src={author.profilePicture} name={authorName} size={42} />
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={goToProfile}
+          className="inline-flex items-center gap-3 border-none bg-transparent p-0 text-left"
+        >
+          <Avatar src={author.profilePicture} name={authorName} size={42} />
+          <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
             {authorName}
             {canEdit && !isMine ? (
@@ -406,11 +420,12 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             </p>
           )}
         </div>
+        </button>
         {isMine ? (
           <>
             <button
               type="button"
-              onClick={() => { setEditedText(post.text || ''); setEditOpen(true) }}
+              onClick={() => { setEditedText(post.text || ''); setEditedItems(items); setEditOpen(true) }}
               disabled={busy}
               title="Edit post"
               className="rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-300"
@@ -722,6 +737,38 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
               rows={4}
               className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 mb-3"
             />
+            {editedItems.length > 0 ? (
+              <div className="mb-3">
+                <p className="text-xs text-zinc-400 mb-2">Media — tap × to remove</p>
+                <div className="flex flex-wrap gap-2">
+                  {editedItems.map((item, idx) => (
+                    <div key={`${item.url}-${idx}`} className="relative">
+                      {item.type === 'video' ? (
+                        <video
+                          src={getFileUrl(item.url)}
+                          className="h-16 w-16 rounded-lg object-cover bg-black"
+                          muted
+                        />
+                      ) : (
+                        <img
+                          src={getFileUrl(item.url)}
+                          alt={item.fileName || 'Media'}
+                          className="h-16 w-16 rounded-lg object-cover bg-black"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setEditedItems((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white hover:bg-red-600"
+                        title="Remove"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

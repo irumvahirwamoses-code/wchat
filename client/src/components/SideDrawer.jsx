@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Bell,
   Compass,
@@ -11,7 +12,6 @@ import {
   ShieldCheck,
   User,
   Users,
-  X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api, { getApiError } from '../config/api'
@@ -27,6 +27,7 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   const { selectChat, fetchChats, pendingJoinRequestCount, fetchJoinRequests } =
     useChat()
   const { onlineUsers } = useSocket()
+  const navigate = useNavigate()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -34,7 +35,6 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   const [searching, setSearching] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [startingChat, setStartingChat] = useState(null)
-  const [viewingProfile, setViewingProfile] = useState(null)
 
   const containerRef = useRef(null)
 
@@ -43,13 +43,11 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
     if (containerRef.current && !containerRef.current.contains(event.target)) {
       setMenuOpen(false)
       setSearchOpen(false)
-      setViewingProfile(null)
     }
   }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
   // Debounced user search.
   useEffect(() => {
     const term = query.trim()
@@ -97,11 +95,10 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   }
 
   const viewProfile = (target) => {
-    setViewingProfile(target)
-    setSearchOpen(false)
     setMenuOpen(false)
+    setSearchOpen(false)
+    if (target?._id) navigate(`/user/${target._id}`)
   }
-
   const openChatWith = async (target) => {
     if (startingChat) return
     setStartingChat(target._id)
@@ -253,7 +250,6 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
               </p>
             ) : (
               results.map((result) => {
-                const isViewing = viewingProfile?._id === result._id
                 return (
                   <div
                     key={result._id}
@@ -298,16 +294,6 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
                       >
                         <MessageCircle size={14} />
                       </button>
-                      {isViewing ? (
-                        <button
-                          type="button"
-                          onClick={() => setViewingProfile(null)}
-                          className="text-zinc-500 hover:text-zinc-300"
-                          title="Close profile"
-                        >
-                          <X size={14} />
-                        </button>
-                      ) : null}
                     </div>
                     {startingChat === result._id && (
                       <Loader2 size={16} className="animate-spin text-amber-400" />

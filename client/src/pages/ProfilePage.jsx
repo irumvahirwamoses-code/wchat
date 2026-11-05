@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { BarChart3, Bookmark, Grid3x3, Link2, Loader2, Lock, Settings } from 'lucide-react'
 import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
+import { useChat } from '../context/ChatContext'
 import Avatar from '../components/Avatar'
 import PostCard from '../components/PostCard'
 import PostComposer from '../components/PostComposer'
@@ -13,6 +14,9 @@ import SettingsPanel from '../components/Settings'
 import SideRail from '../components/SideRail'
 import MobileNav from '../components/MobileNav'
 import EditProfileModal from '../components/EditProfileModal'
+import AdminDashboard from './AdminDashboard'
+import FeedbackModal from '../components/FeedbackModal'
+import NotificationPage from './NotificationPage'
 import { formatHandle } from '../utils/handle'
 import { getId } from '../utils/api'
 
@@ -25,7 +29,8 @@ const TABS = [
 export default function ProfilePage({ onEdit, onOpenProfile }) {
   const navigate = useNavigate()
   const { userId } = useParams()
-  const { user } = useAuth()
+  const { user, isSuperAdmin } = useAuth()
+  const { unreadCount: notificationUnreadCount, notifications } = useChat()
   const targetId = userId || getId(user)
   const isMe = String(targetId) === String(getId(user))
 
@@ -41,6 +46,9 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
   const [showSettings, setShowSettings] = useState(false)
   const [storyComposerOpen, setStoryComposerOpen] = useState(false)
   const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
 
   useEffect(() => {
     document.title = 'Profile | Wchat'
@@ -247,11 +255,11 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
             }}
             onNewPost={() => setStoryComposerOpen(true)}
             onOpenProfile={() => navigate(`/user/${getId(user)}`)}
-            onOpenAdmin={null}
-            onOpenFeedback={() => {}}
-            unreadChat={0}
-            unreadNotifications={0}
-            className="w-[64px] md:w-[256px] flex-shrink-0"
+            onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
+            onOpenFeedback={() => setFeedbackOpen(true)}
+            onOpenNotifications={() => setNotificationOpen(true)}
+            unreadChat={Object.values(notifications || {}).reduce((sum, n) => sum + (n || 0), 0)}
+            unreadNotifications={notificationUnreadCount}
           />
         </div>
 
@@ -324,6 +332,18 @@ export default function ProfilePage({ onEdit, onOpenProfile }) {
       {editProfileOpen && (
         <EditProfileModal onClose={() => setEditProfileOpen(false)} />
       )}
+
+      {adminOpen && (
+        <AdminDashboard onClose={() => setAdminOpen(false)} />
+      )}
+
+      {feedbackOpen ? (
+        <FeedbackModal onClose={() => setFeedbackOpen(false)} />
+      ) : null}
+
+      {notificationOpen ? (
+        <NotificationPage onClose={() => setNotificationOpen(false)} />
+      ) : null}
     </div>
   )
 }

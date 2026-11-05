@@ -203,7 +203,7 @@ export default function ChatPage() {
         return (
           <ProfilePage
             onEdit={() => setEditProfileOpen(true)}
-            onOpenProfile={openProfileModal}
+            onOpenProfile={() => setTab('profile')}
           />
         )
       case 'notifications':
@@ -268,17 +268,19 @@ export default function ChatPage() {
         title="Messages | Wchat"
         description="Your Wchat messages, Circles, and community activity. This is a private app page and is not indexed by search engines."
       />
-      <SideRail
-        active={tab}
-        onChange={goTab}
-        onNewPost={() => goTab('create')}
-        onOpenProfile={() => setTab('profile')}
-        onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
-        onOpenFeedback={() => setFeedbackOpen(true)}
-        onOpenNotifications={() => setNotificationOpen(true)}
-        unreadChat={unreadTotal}
-        unreadNotifications={notificationUnreadCount}
-      />
+      {tab !== 'profile' && (
+        <SideRail
+          active={tab}
+          onChange={goTab}
+          onNewPost={() => goTab('create')}
+          onOpenProfile={() => setTab('profile')}
+          onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
+          onOpenFeedback={() => setFeedbackOpen(true)}
+          onOpenNotifications={() => setNotificationOpen(true)}
+          unreadChat={unreadTotal}
+          unreadNotifications={notificationUnreadCount}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-h-0 flex-1">{tabContent}</main>

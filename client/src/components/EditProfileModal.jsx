@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import api, { getApiError } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
+import ImageEditor from './ImageEditor'
 
 const ACCOUNT_TYPES = [
   { id: 'personal', label: 'Personal', hint: 'Friends and family' },
@@ -35,8 +36,11 @@ export default function EditProfileModal({ onClose }) {
   })
   const [links, setLinks] = useState([])
   const [avatar, setAvatar] = useState('')
+  const [avatarPreview, setAvatarPreview] = useState(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [imageEditOpen, setImageEditOpen] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -52,6 +56,7 @@ export default function EditProfileModal({ onClose }) {
     })
     setLinks(Array.isArray(user.links) ? user.links.slice(0, 5) : [])
     setAvatar(user.profilePicture || '')
+    setAvatarPreview(null)
   }, [user])
 
   const set = (key) => (event) => {
@@ -75,12 +80,20 @@ export default function EditProfileModal({ onClose }) {
   const pickAvatar = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
+    setImageToEdit(file)
+    setImageEditOpen(true)
+  }
+
+  const confirmAvatar = async (editedFile) => {
+    setImageEditOpen(false)
+    setImageToEdit(null)
     setUploadingAvatar(true)
     try {
       const payload = new FormData()
-      payload.append('profilePicture', file)
+      payload.append('profilePicture', editedFile)
       const { data } = await api.put('/users/profile', payload)
       setAvatar(data.profilePicture)
+      setAvatarPreview(null)
       updateUser(data)
       toast.success('Photo updated')
     } catch (error) {
@@ -166,6 +179,15 @@ export default function EditProfileModal({ onClose }) {
               className="hidden"
             />
           </div>
+
+      {imageEditOpen && imageToEdit && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onConfirm={confirmAvatar}
+          onClose={() => { setImageEditOpen(false); setImageToEdit(null) }}
+          aspectRatio={1}
+        />
+      )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="First name">

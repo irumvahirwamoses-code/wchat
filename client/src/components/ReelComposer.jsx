@@ -408,7 +408,8 @@ export default function ReelComposer({ onClose, onCreated }) {
   const publish = async () => {
     if (!chatId) return toast.error('Join a Circle to share a Reel')
     if (clips.length === 0) return toast.error('Add at least one video clip')
-    if (!title.trim()) return toast.error('Give your Reel a title')
+    // Title is optional — fall back to a short caption/hashtag-derived title.
+    const safeTitle = title.trim() || description.trim().slice(0, 60) || 'My Reel'
     if (totalSeconds > MAX_TOTAL_SECONDS + 30) {
       return toast.error('Reels are limited to about 3 minutes')
     }
@@ -417,8 +418,7 @@ export default function ReelComposer({ onClose, onCreated }) {
     setBusy(true)
     try {
       const payload = new FormData()
-      payload.append('kind', 'reel')
-      payload.append('title', title.trim())
+      payload.append('title', safeTitle)
       payload.append('description', description.trim())
       payload.append('location', location.trim())
       payload.append('tags', hashtags)
@@ -1126,7 +1126,7 @@ export default function ReelComposer({ onClose, onCreated }) {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               maxLength={160}
-              placeholder="Reel title"
+              placeholder="Reel title (optional)"
               className={inputClass}
             />
             <textarea

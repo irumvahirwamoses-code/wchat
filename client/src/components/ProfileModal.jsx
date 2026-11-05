@@ -15,6 +15,7 @@ import { formatLastSeen, getId, isUserOnline } from '../utils/api'
 import { formatHandle, normalizeUsernameInput } from '../utils/handle'
 import Avatar from './Avatar'
 import ImagePicker, { useObjectUrl } from './ImagePicker'
+import ImageEditor from './ImageEditor'
 import Modal, { ModalHeader } from './Modal'
 import ProfileSocial from './ProfileSocial'
 
@@ -65,6 +66,8 @@ function SelfProfile({ user, updateUser, onClose, online }) {
   })
   const [pictureError, setPictureError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [imageEditOpen, setImageEditOpen] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState(null)
 
   useObjectUrl(picture.preview)
 
@@ -242,11 +245,12 @@ function SelfProfile({ user, updateUser, onClose, online }) {
                   return
                 }
                 setPictureError('')
-                setPicture((prev) => ({
-                  ...prev,
-                  file,
-                  preview: file ? URL.createObjectURL(file) : prev.preview,
-                }))
+                if (file) {
+                  setImageToEdit(file)
+                  setImageEditOpen(true)
+                } else {
+                  setPicture((prev) => ({ ...prev, file: null, preview: prev.preview }))
+                }
               }}
               onRemove={() => {
                 setPicture({ file: null, preview: '' })
@@ -254,6 +258,22 @@ function SelfProfile({ user, updateUser, onClose, online }) {
               }}
             />
           </Field>
+
+      {imageEditOpen && imageToEdit && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onConfirm={(editedFile) => {
+            setPicture({
+              file: editedFile,
+              preview: URL.createObjectURL(editedFile),
+            })
+            setImageEditOpen(false)
+            setImageToEdit(null)
+          }}
+          onClose={() => { setImageEditOpen(false); setImageToEdit(null) }}
+          aspectRatio={1}
+        />
+      )}
         </div>
       </div>
 

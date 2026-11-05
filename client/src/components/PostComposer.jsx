@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AudioWaveform,
   Image,
@@ -6,6 +7,7 @@ import {
   Loader2,
   MapPin,
   Music2,
+  Pencil,
   X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -173,8 +175,9 @@ export default function PostComposer({ onClose, onCreated }) {
                   type="button"
                   onClick={() => startEdit(i)}
                   className="absolute -left-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-zinc-100"
+                  title="Edit / crop / draw"
                 >
-                  <ImageIcon size={10} />
+                  <Pencil size={10} />
                 </button>
                 {files.length > 1 ? (
                   <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[9px] font-semibold text-white">
@@ -227,13 +230,16 @@ export default function PostComposer({ onClose, onCreated }) {
         </div>
       </div>
 
-      {editOpen !== null && (
-        <ImageEditor
-          imageFile={files[editOpen]}
-          onConfirm={(editedFile) => confirmEdit(editedFile, editOpen)}
-          onClose={() => setEditOpen(null)}
-        />
-      )}
+      {editOpen !== null &&
+        createPortal(
+          <ImageEditor
+            imageFile={files[editOpen]}
+            onConfirm={(editedFile) => confirmEdit(editedFile, editOpen)}
+            onClose={() => setEditOpen(null)}
+            allowDraw
+          />,
+          document.body
+        )}
       {musicOpen && (
         <MusicPicker
           value={music}

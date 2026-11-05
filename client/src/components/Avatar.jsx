@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getFileUrl, getInitials } from '../utils/api'
 
 /**
@@ -15,6 +15,10 @@ export default function Avatar({
   const dimension = typeof size === 'number' ? `${size}px` : size
   const fontSize = Math.max(11, Math.round(Number(size) * 0.36) || 14)
   const [hasImage, setHasImage] = useState(Boolean(src))
+
+  useEffect(() => {
+    setHasImage(Boolean(src))
+  }, [src])
 
   return (
     <div

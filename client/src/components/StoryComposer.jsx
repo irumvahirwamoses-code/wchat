@@ -227,24 +227,24 @@ export default function StoryComposer({ onClose, onCreated }) {
     if (!parent) return undefined
     const resize = () => {
       const rect = parent.getBoundingClientRect()
-      const snapshot = canvas.width && canvas.height ? canvas.toDataURL() : null
-      canvas.width = Math.max(1, Math.round(rect.width))
-      canvas.height = Math.max(1, Math.round(rect.height))
-      if (snapshot) {
-        const image = new Image()
-        image.onload = () => {
+      if (canvas.width !== Math.round(rect.width) || canvas.height !== Math.round(rect.height)) {
+        // Save existing drawing
+        const snapshot = canvas.toDataURL()
+        canvas.width = Math.round(rect.width)
+        canvas.height = Math.round(rect.height)
+        const img = new Image()
+        img.onload = () => {
           const ctx = canvas.getContext('2d')
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-          ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+          ctx.drawImage(img, 0, 0)
         }
-        image.src = snapshot
+        img.src = snapshot
       }
     }
     resize()
-    const observer = new ResizeObserver(resize)
-    observer.observe(parent)
-    return () => observer.disconnect()
-  }, [previewUrl, mode, mediaType])
+    const ro = new ResizeObserver(resize)
+    ro.observe(parent)
+    return () => ro.disconnect()
+  }, [file, mode, drawMode])
 
   const pickFile = (picked) => {
     if (!picked) return

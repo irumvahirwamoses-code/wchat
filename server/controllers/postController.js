@@ -545,9 +545,24 @@ export const editPost = async (req, res, next) => {
       return res.status(403).json({ message: 'You cannot edit this post' });
     }
 
-    const { text, location } = req.body;
+    const { text, location, mediaItems } = req.body;
     if (text !== undefined) post.text = String(text).slice(0, 3000);
     if (location !== undefined) post.location = String(location).slice(0, 120);
+
+    // Allow removing/reordering media items (keep only those still present).
+    if (Array.isArray(mediaItems)) {
+      const kept = mediaItems.slice(0, 10).map((item) => ({
+        url: String(item?.url || ''),
+        type: ['image', 'video'].includes(item?.type) ? item.type : 'image',
+        fileName: String(item?.fileName || ''),
+        fileSize: Number(item?.fileSize) || 0,
+      })).filter((item) => item.url);
+      post.mediaItems = kept;
+      post.media = kept[0]?.url || '';
+      post.mediaType = kept[0]?.type || '';
+      post.fileName = kept[0]?.fileName || '';
+      post.fileSize = kept[0]?.fileSize || 0;
+    }
 
     // Re-extract hashtags/mentions from the updated caption.
     const { tags, mentions } = extractTags(post.text);
