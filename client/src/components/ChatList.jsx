@@ -80,10 +80,10 @@ export default function ChatList() {
               key={chat._id}
               type="button"
               onClick={() => selectChat(chat)}
-              className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+              className={`mb-1 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition ${
                 active
-                  ? 'bg-amber-400/10 ring-1 ring-amber-400/30'
-                  : 'hover:bg-zinc-800/60'
+                  ? 'bg-wchat/12 ring-1 ring-wchat/20 shadow-sm'
+                  : 'hover:bg-zinc-800/55'
               }`}
             >
               <Avatar src={avatar} name={title} size={48} online={online} />
@@ -92,7 +92,7 @@ export default function ChatList() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1">
                     {chat.pinned ? (
-                      <Pin size={12} className="shrink-0 text-amber-400" />
+                      <Pin size={12} className="shrink-0 text-wchat" />
                     ) : null}
                     <span className="truncate text-sm font-semibold text-zinc-100">
                       {title}
@@ -100,7 +100,7 @@ export default function ChatList() {
                   </span>
                   <span
                     className={`shrink-0 text-[11px] ${
-                      unread > 0 ? 'text-amber-400' : 'text-zinc-500'
+                      unread > 0 ? 'font-semibold text-wchat' : 'text-zinc-500'
                     }`}
                   >
                     {last?.createdAt ? formatTime(last.createdAt) : ''}
@@ -110,7 +110,7 @@ export default function ChatList() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs text-zinc-400">
                     {isTyping ? (
-                      <span className="inline-flex items-center gap-1 text-amber-400">
+                      <span className="inline-flex items-center gap-1 text-wchat">
                         <span className="typing-dot">•</span>
                         <span className="typing-dot">•</span>
                         <span className="typing-dot">•</span>
@@ -125,7 +125,7 @@ export default function ChatList() {
                   </span>
 
                   {unread > 0 ? (
-                    <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-amber-400 px-1.5 text-[10px] font-bold text-white">
+                    <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full wchat-gradient px-1.5 text-[10px] font-bold text-white">
                       {unread > 99 ? '99+' : unread}
                     </span>
                   ) : null}

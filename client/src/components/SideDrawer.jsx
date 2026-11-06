@@ -71,24 +71,6 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
     return () => clearTimeout(timer)
   }, [query])
 
-  const openPrivateChat = async (target) => {
-    if (startingChat) return
-    setStartingChat(target._id)
-    try {
-      const { data } = await api.post('/chats', { userId: target._id })
-      await fetchChats()
-      selectChat(data)
-      setQuery('')
-      setResults([])
-      setSearchOpen(false)
-      setMenuOpen(false)
-    } catch (error) {
-      toast.error(getApiError(error, 'Could not open that conversation'))
-    } finally {
-      setStartingChat(null)
-    }
-  }
-
   const handleLogout = () => {
     setMenuOpen(false)
     logout()
@@ -97,7 +79,11 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   const viewProfile = (target) => {
     setMenuOpen(false)
     setSearchOpen(false)
-    if (target?._id) navigate(`/user/${target._id}`)
+    if (target?._id) {
+      // Remember where the member came from so the profile's Back button
+      // returns to Messages instead of the Home feed.
+      navigate(`/user/${target._id}`, { state: { from: 'chat' } })
+    }
   }
   const openChatWith = async (target) => {
     if (startingChat) return
@@ -110,7 +96,6 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
       setResults([])
       setSearchOpen(false)
       setMenuOpen(false)
-      setViewingProfile(null)
     } catch (error) {
       toast.error(getApiError(error, 'Could not open that conversation'))
     } finally {
@@ -137,7 +122,7 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
   return (
     <div
       ref={containerRef}
-      className="relative z-20 border-b border-zinc-800/80 bg-zinc-900/60 px-3 pb-3 pt-3 backdrop-blur"
+      className="relative z-20 border-b border-zinc-800/70 wchat-glass px-3 pb-3 pt-3"
     >
       <div className="flex items-center gap-2">
         <Logo size={36} textClassName="text-zinc-100" />
@@ -146,7 +131,7 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
             type="button"
             onClick={onNewGroup}
             title="New group"
-            className="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-amber-400"
+            className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-wchat"
           >
             <Plus size={18} />
           </button>
@@ -233,17 +218,17 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => query.trim() && setSearchOpen(true)}
           placeholder="Search people by name or @username"
-          className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 py-2.5 pl-9 pr-9 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-amber-400/60"
+          className="w-full rounded-2xl border border-zinc-800/80 bg-zinc-950/55 py-2.5 pl-9 pr-9 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-wchat/50 focus:ring-4 focus:ring-wchat/10"
         />
         {searching ? (
           <Loader2
             size={15}
-            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-amber-400"
+            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-wchat"
           />
         ) : null}
 
         {searchOpen && query.trim() ? (
-          <div className="animate-scale-in absolute left-0 right-0 top-12 z-30 max-h-80 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl">
+          <div className="animate-scale-in absolute left-0 right-0 top-12 z-30 max-h-80 overflow-y-auto rounded-2xl border border-zinc-800/80 bg-zinc-900/95 shadow-2xl backdrop-blur-xl">
             {results.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-zinc-500">
                 {searching ? 'Searching…' : 'No people found'}
@@ -253,7 +238,7 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
                 return (
                   <div
                     key={result._id}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-800/70 border-b border-zinc-800/60 last:border-0"
+                    className="flex w-full items-center gap-3 border-b border-zinc-800/60 px-3 py-2.5 text-left transition last:border-0 hover:bg-zinc-800/60"
                   >
                     <button
                       type="button"

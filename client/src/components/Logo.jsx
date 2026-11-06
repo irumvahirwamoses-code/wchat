@@ -8,7 +8,7 @@
 export function WchatMark({ size = 40, className = '', rounded = 'rounded-2xl' }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center wchat-gradient text-white shadow-lg shadow-wchat/25 ${rounded} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center wchat-gradient text-white wchat-glow ring-1 ring-white/15 ${rounded} ${className}`}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >

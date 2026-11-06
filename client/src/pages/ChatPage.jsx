@@ -283,7 +283,7 @@ export default function ChatPage() {
   ])
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="flex h-dvh w-full overflow-hidden bg-zinc-950 wchat-surface-grid text-zinc-100">
       <Seo
         noIndex
         path="/"

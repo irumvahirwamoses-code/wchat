@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, MessageCircle, Palette, Plus, X } from 'lucide-react'
 import api from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -31,6 +31,15 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [firstLoad, setFirstLoad] = useState(true)
+  const [tab, setTab] = useState('for_you')
+  const tabRef = useRef(tab)
+  // Rolling deploy safety: if the API does not have /feeds/home yet (older
+  // server during a client-first deploy), keep Home working on /posts/feed.
+  const legacyFeedRef = useRef(false)
+
+  useEffect(() => {
+    tabRef.current = tab
+  }, [tab])
 
   useEffect(() => {
     document.title = "Home Feed | Wchat"
@@ -56,37 +65,82 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   }, [])
 
   const loadPage = useCallback(async (target) => {
+    const requestedTab = tab
     setLoading(true)
     try {
-      const { data } = await api.get(`/posts/feed?page=${target}&limit=${PAGE_SIZE}`)
+      let data
+      if (legacyFeedRef.current) {
+        ;({ data } = await api.get(`/posts/feed?page=${target}&limit=${PAGE_SIZE}`))
+      } else {
+        try {
+          ;({ data } = await api.get(
+            `/feeds/home?tab=${requestedTab}&page=${target}&limit=${PAGE_SIZE}`
+          ))
+        } catch (error) {
+          if (error?.response?.status !== 404) throw error
+          legacyFeedRef.current = true
+          ;({ data } = await api.get(`/posts/feed?page=${target}&limit=${PAGE_SIZE}`))
+        }
+      }
+      if (requestedTab !== tabRef.current) return
+      // The server may force the chronological tab when personalisation is off.
+      if (target === 1 && data.tab && data.tab !== requestedTab) {
+        tabRef.current = data.tab
+        setTab(data.tab)
+      }
       const batch = data.posts || []
-      setPosts((prev) => (target === 1 ? batch : [...prev, ...batch]))
+      setPosts((prev) => {
+        if (target === 1) return batch
+        // Re-ranking can shift items between requests; never render a post
+        // twice when the next page overlaps the previous one.
+        const seen = new Set(prev.map((post) => String(post._id)))
+        return [...prev, ...batch.filter((post) => !seen.has(String(post._id)))]
+      })
       setHasMore(Boolean(data.hasMore))
       setPage(target + 1)
     } catch {
-      setHasMore(false)
+      if (requestedTab === tabRef.current) setHasMore(false)
     } finally {
-      setLoading(false)
-      setFirstLoad(false)
+      if (requestedTab === tabRef.current) {
+        setLoading(false)
+        setFirstLoad(false)
+      }
     }
-  }, [])
+  }, [tab])
 
   useEffect(() => {
     loadStories()
+  }, [loadStories])
+
+  useEffect(() => {
     loadPage(1)
-  }, [loadStories, loadPage])
+  }, [loadPage])
+
+  const changeTab = (next) => {
+    if (next === tab) return
+    tabRef.current = next
+    setPosts([])
+    setPage(1)
+    setHasMore(true)
+    setFirstLoad(true)
+    setTab(next)
+  }
 
   const onCreated = (post) => setPosts((prev) => [post, ...prev])
   const onDeleted = (id) => setPosts((prev) => prev.filter((p) => p._id !== id))
+  const onNotInterested = (id) => setPosts((prev) => prev.filter((p) => p._id !== id))
 
   // Mute anything containing a hidden word.
   const visiblePosts = useMemo(() => filterHidden(posts, (p) => p.text), [posts])
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto bg-zinc-950">
-      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-2.5">
-          <h1 className="text-xl font-extrabold tracking-tight text-zinc-100">Wchat</h1>
+    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh">
+      <header className="sticky top-0 z-20 border-b border-zinc-800/70 wchat-glass">
+        <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
+          <div>
+            <h1 className="text-xl font-extrabold tracking-tight text-zinc-100">Wchat</h1>
+            <p className="text-[11px] font-medium text-zinc-500">Connect. Share. Belong.</p>
+          </div>
 
           <div className="flex items-center gap-0.5">
             <ThemeButton />
@@ -94,7 +148,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
               type="button"
               onClick={onOpenChat}
               aria-label="Messages"
-              className="relative rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-wchat"
+              className="relative rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-wchat"
             >
               <MessageCircle size={20} />
               {unread > 0 ? (
@@ -107,7 +161,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
               type="button"
               onClick={() => setComposerOpen(true)}
               aria-label="Create a post"
-              className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-wchat"
+              className="rounded-xl p-2 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-wchat"
             >
               <Plus size={20} />
             </button>
@@ -123,24 +177,45 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
         onOpenStory={openStory}
       />
 
+      <div className="border-b border-zinc-800/70 bg-zinc-950/35 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-xl gap-1 px-4">
+          <FeedTab
+            active={tab === 'for_you'}
+            onClick={() => changeTab('for_you')}
+          >
+            For you
+          </FeedTab>
+          <FeedTab
+            active={tab === 'following'}
+            onClick={() => changeTab('following')}
+          >
+            Following
+          </FeedTab>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-xl px-4 py-4">
         {firstLoad ? (
           <div className="flex justify-center py-24">
             <div className="spinner" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-20 text-center">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-wchat-400 to-wchat text-2xl font-black text-white">
-              K
+          <div className="flex flex-col items-center gap-3 rounded-3xl border border-zinc-800/70 bg-zinc-900/45 px-6 py-16 text-center shadow-card backdrop-blur-sm">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl wchat-gradient text-2xl font-black text-white wchat-glow">
+              W
             </div>
-            <p className="text-sm font-semibold text-zinc-200">Your Home is quiet</p>
+            <p className="text-sm font-semibold text-zinc-100">
+              {tab === 'following' ? 'Nothing from your Circles yet' : 'Your Home is ready for a spark'}
+            </p>
             <p className="max-w-xs text-xs text-zinc-500">
-              Join a Circle or share your first post — it will show up right here.
+              {tab === 'following'
+                ? 'Join a Circle or follow a few people — their posts will show up here in order.'
+                : 'Join a Circle or share your first post — stories, Reels, and community updates will flow in here.'}
             </p>
             <button
               type="button"
               onClick={() => setComposerOpen(true)}
-              className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-wchat px-4 py-2.5 text-xs font-semibold text-white transition hover:brightness-110"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-2xl wchat-gradient px-4 py-2.5 text-xs font-semibold text-white wchat-glow transition hover:brightness-110"
             >
               <Plus size={14} /> Create a post
             </button>
@@ -149,12 +224,15 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
           <div className="space-y-4">
             <ParticipationRail onExplore={onExplore} onOpenHub={onOpenHub} />
 
-            {visiblePosts.map((post) => (
+            {visiblePosts.map((post, index) => (
               <PostCard
                 key={post._id}
                 post={post}
                 showReason
+                surface={tab === 'following' ? 'following' : 'home'}
+                position={index}
                 onDeleted={onDeleted}
+                onNotInterested={onNotInterested}
               />
             ))}
 
@@ -249,6 +327,26 @@ function Overlay({ children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       {children}
     </div>
+  )
+}
+
+/** Segmented control for the ranked vs chronological Home feed. */
+function FeedTab({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative px-3 py-2.5 text-xs font-semibold transition ${
+        active ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+      }`}
+    >
+      {children}
+      <span
+        className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full transition ${
+          active ? 'bg-wchat' : 'bg-transparent'
+        }`}
+      />
+    </button>
   )
 }
 

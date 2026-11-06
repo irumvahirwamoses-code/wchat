@@ -36,10 +36,10 @@ export default function SideRail({
         onClick={() => onChange?.(item.id)}
         title={item.label}
         aria-current={on ? 'page' : undefined}
-        className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+        className={`group relative flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium transition ${
           on
-            ? 'bg-wchat/10 text-wchat'
-            : 'text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200'
+            ? 'bg-wchat/12 text-wchat ring-1 ring-wchat/15'
+            : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-100'
         }`}
       >
         <span className="relative shrink-0">
@@ -56,12 +56,13 @@ export default function SideRail({
   }
 
   return (
-    <aside className="hidden h-full w-[76px] shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-900/40 md:flex lg:w-64">
+    <aside className="hidden h-full w-[76px] shrink-0 flex-col border-r border-zinc-800/70 bg-zinc-900/55 backdrop-blur-xl md:flex lg:w-64">
       <div className="flex items-center gap-3 px-3 py-4 lg:px-4">
-        <Logo size={34} />
-        <span className="hidden text-lg font-extrabold tracking-tight text-zinc-100 lg:inline">
-          Wchat
-        </span>
+        <Logo size={36} />
+        <div className="hidden lg:block">
+          <span className="block text-lg font-extrabold tracking-tight text-zinc-100">Wchat</span>
+          <span className="block text-[10px] font-medium text-zinc-500">Connect. Share. Belong.</span>
+        </div>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-2 lg:px-3">
@@ -71,13 +72,13 @@ export default function SideRail({
           type="button"
           onClick={onNewPost}
           title="Create"
-          className="mt-1 flex w-full items-center gap-3 rounded-xl bg-gradient-to-br from-wchat-400 to-wchat px-3 py-2.5 text-left text-sm font-semibold text-white shadow-sm shadow-wchat/30 transition hover:brightness-105"
+          className="mt-2 flex w-full items-center gap-3 rounded-2xl wchat-gradient px-3 py-3 text-left text-sm font-semibold text-white wchat-glow transition hover:brightness-105"
         >
           <Plus size={21} strokeWidth={2.6} className="shrink-0" />
           <span className="hidden lg:inline">Create</span>
         </button>
 
-        <div className="my-2 hidden border-t border-zinc-800/80 lg:block" />
+        <div className="my-3 hidden border-t border-zinc-800/70 lg:block" />
 
         {SECONDARY_NAV.map(renderItem)}
 
@@ -85,19 +86,21 @@ export default function SideRail({
           type="button"
           onClick={onOpenNotifications}
           title="Notifications"
-          className="mt-1 flex w-full items-center gap-3 rounded-xl border border-zinc-800 px-3 py-2.5 text-left text-sm font-medium transition hover:bg-zinc-800/70 hover:text-zinc-100"
+          className="mt-1 flex w-full items-center gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 px-3 py-2.5 text-left text-sm font-medium transition hover:border-wchat/30 hover:bg-zinc-800/70 hover:text-zinc-100"
         >
-          <Bell size={22} className="shrink-0" />
-          {unreadNotifications > 0 ? (
-            <span className="absolute -right-1 -top-1 grid min-w-[15px] place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
-              {unreadNotifications > 99 ? '99+' : unreadNotifications}
-            </span>
-          ) : null}
+          <span className="relative shrink-0">
+            <Bell size={22} />
+            {unreadNotifications > 0 ? (
+              <span className="absolute -right-2 -top-1.5 grid min-w-[15px] place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+              </span>
+            ) : null}
+          </span>
           <span className="hidden lg:inline">Notifications</span>
         </button>
       </nav>
 
-      <div className="flex flex-col gap-1 border-t border-zinc-800/80 px-2 py-3 lg:px-3">
+      <div className="flex flex-col gap-1 border-t border-zinc-800/70 px-2 py-3 lg:px-3">
         {onOpenAdmin ? (
           <button
             type="button"

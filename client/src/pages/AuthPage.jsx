@@ -63,8 +63,10 @@ export default function AuthPage() {
       <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-2">
         {/* ---------------------------------------------------------- brand side */}
         <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between wchat-gradient p-12 text-white">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(to_right,rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.12)_1px,transparent_1px)] [background-size:44px_44px]" />
+          <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/12 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-20 h-96 w-96 rounded-full bg-cyan-300/10 blur-3xl" />
+          <div className="pointer-events-none absolute right-20 top-1/3 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
           <div className="relative flex items-center gap-3">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
@@ -84,14 +86,17 @@ export default function AuthPage() {
           </div>
 
           <div className="relative max-w-md">
+            <p className="mb-3 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85">
+              Connect. Share. Belong.
+            </p>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight">
               Your communities,
               <br />
               your circles.
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-white/80">
-              Join Circles of people who share your fields, share Loops and posts, Spark what you
-              love and watch your Buzz grow. Built for Rwanda, made for everyone.
+              Join Circles of people who share your fields, share Reels and posts, Spark what you
+              love, and grow together. Built by WT Company students from Saint Kizito Save.
             </p>
 
             <ul className="mt-8 space-y-3 text-sm text-white/90">
@@ -178,12 +183,18 @@ function TabButton({ active, onClick, children }) {
 /* -------------------------------------------------------------------- login */
 
 function LoginForm({ onSwitch }) {
-  const { login, loading } = useAuth()
+  const { login, forgotPassword, resetPassword, loading } = useAuth()
+  const [mode, setMode] = useState('login') // login | forgot | reset
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [code, setCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [destination, setDestination] = useState('')
+  const [devCode, setDevCode] = useState('')
 
-  const submit = async (event) => {
+  const submitLogin = async (event) => {
     event.preventDefault()
     if (!identifier.trim() || !password) {
       toast.error('Enter your login details to continue')
@@ -196,8 +207,152 @@ function LoginForm({ onSwitch }) {
     }
   }
 
+  const submitForgot = async (event) => {
+    event.preventDefault()
+    if (!identifier.trim()) {
+      toast.error('Enter the email or phone number on your account')
+      return
+    }
+    try {
+      const data = await forgotPassword(identifier.trim())
+      setDestination(data?.destination || '')
+      setDevCode(data?.devCode || '')
+      setMode('reset')
+    } catch {
+      /* toast already shown */
+    }
+  }
+
+  const submitReset = async (event) => {
+    event.preventDefault()
+    if (!code.trim()) {
+      toast.error('Enter the code we sent you')
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error('Your new password must be at least 6 characters')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('The two passwords do not match')
+      return
+    }
+    try {
+      await resetPassword({
+        identifier: identifier.trim(),
+        code: code.trim(),
+        newPassword,
+      })
+      setPassword('')
+      setCode('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowPassword(false)
+      setMode('login')
+    } catch {
+      /* toast already shown */
+    }
+  }
+
+  if (mode === 'forgot') {
+    return (
+      <form onSubmit={submitForgot} className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setMode('login')}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink"
+        >
+          <ArrowLeft size={15} /> Back to sign in
+        </button>
+
+        <div className="rounded-2xl bg-wchat/5 p-4 text-sm leading-relaxed text-ink/65">
+          Enter the email address or phone number linked to your account. We will send a
+          6-digit code to reset your password.
+        </div>
+
+        <Field label="Email or phone number">
+          <div className="relative">
+            <AtSign size={16} className="icon-left" />
+            <input
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="you@example.com · +250 788 123 456"
+              autoComplete="username"
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </Field>
+
+        <PrimaryButton type="submit" loading={loading}>
+          Send reset code
+        </PrimaryButton>
+      </form>
+    )
+  }
+
+  if (mode === 'reset') {
+    return (
+      <form onSubmit={submitReset} className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setMode('login')}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink"
+        >
+          <ArrowLeft size={15} /> Back to sign in
+        </button>
+
+        <div className="rounded-2xl bg-wchat/5 p-4 text-sm leading-relaxed text-ink/65">
+          {destination
+            ? `We sent a reset code to ${destination}.`
+            : 'If that account exists, a reset code is on its way.'}{' '}
+          It expires in 10 minutes.
+          {devCode ? (
+            <span className="mt-2 block font-semibold text-ink">
+              Development code: {devCode}
+            </span>
+          ) : null}
+        </div>
+
+        <Field label="6-digit code">
+          <input
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="123456"
+            className={`${inputClass} tracking-[0.4em] text-center text-lg font-bold`}
+          />
+        </Field>
+
+        <Field label="New password" hint="At least 6 characters">
+          <PasswordInput
+            value={newPassword}
+            onChange={setNewPassword}
+            visible={showPassword}
+            onToggle={() => setShowPassword((v) => !v)}
+            autoComplete="new-password"
+          />
+        </Field>
+
+        <Field label="Confirm new password">
+          <PasswordInput
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            visible={showPassword}
+            onToggle={() => setShowPassword((v) => !v)}
+            autoComplete="new-password"
+          />
+        </Field>
+
+        <PrimaryButton type="submit" loading={loading}>
+          Reset password
+        </PrimaryButton>
+      </form>
+    )
+  }
+
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submitLogin} className="space-y-4">
       <Field label="Email, phone number or username">
         <div className="relative">
           <AtSign size={16} className="icon-left" />
@@ -220,6 +375,20 @@ function LoginForm({ onSwitch }) {
           autoComplete="current-password"
         />
       </Field>
+
+      <div className="-mt-1 text-right">
+        <button
+          type="button"
+          onClick={() => {
+            setDestination('')
+            setDevCode('')
+            setMode('forgot')
+          }}
+          className="text-sm font-semibold text-wchat hover:underline"
+        >
+          Forgot password?
+        </button>
+      </div>
 
       <PrimaryButton type="submit" loading={loading}>
         Sign in
