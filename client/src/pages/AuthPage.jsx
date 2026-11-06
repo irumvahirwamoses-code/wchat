@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   AtSign,
@@ -47,116 +48,95 @@ const GENDERS = [
 ]
 
 export default function AuthPage() {
-  const [tab, setTab] = useState('register')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('mode') === 'login' ? 'login' : 'register'
+  const [tab, setTab] = useState(initialTab)
 
   useEffect(() => {
-    document.title = 'Create Account | Wchat'
-  }, [])
+    const mode = searchParams.get('mode')
+    if (mode === 'login' || mode === 'register') setTab(mode)
+  }, [searchParams])
+
+  useEffect(() => {
+    document.title = tab === 'login'
+      ? 'Log in — Wchat'
+      : 'Create your account — Wchat'
+  }, [tab])
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-dvh bg-white">
       <Seo
-        title="Create Account | Wchat"
-        description="Create a Wchat account to join Circles, chat in real time, and invite people with links or QR codes."
+        title={tab === 'login' ? 'Log in | Wchat' : 'Create your account | Wchat'}
+        description={tab === 'login'
+          ? 'Sign in to Wchat to chat, call, share Reels, and catch up with your Circles.'
+          : 'Create a Wchat account to join Circles, chat in real time, and share with your community.'}
         path="/auth"
       />
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-2">
+      <div className="mx-auto grid min-h-dvh w-full max-w-6xl grid-cols-1 lg:grid-cols-[1.02fr_.98fr]">
         {/* ---------------------------------------------------------- brand side */}
-        <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between wchat-gradient p-12 text-white">
-          <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(to_right,rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.12)_1px,transparent_1px)] [background-size:44px_44px]" />
-          <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/12 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-20 h-96 w-96 rounded-full bg-cyan-300/10 blur-3xl" />
-          <div className="pointer-events-none absolute right-20 top-1/3 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-
-          <div className="relative flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-              <svg viewBox="0 0 48 48" width="26" height="26" fill="none">
-                <circle cx="19" cy="24" r="7.5" stroke="white" strokeWidth="3.4" />
-                <circle
-                  cx="29"
-                  cy="24"
-                  r="7.5"
-                  stroke="white"
-                  strokeWidth="3.4"
-                  opacity="0.72"
-                />
-              </svg>
-            </span>
-            <span className="text-2xl font-extrabold tracking-tight">Wchat</span>
-          </div>
-
+        <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between bg-gradient-hero p-10 text-white xl:p-12">
+          <div className="pointer-events-none absolute inset-0 bg-grid opacity-35 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-[color:var(--landing-blue)]/20 blur-3xl" />
+          <div className="relative"><Logo size={42} textClassName="text-white" /></div>
           <div className="relative max-w-md">
-            <p className="mb-3 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85">
+            <p className="mb-3 inline-flex rounded-full border border-white/20 bg-slate-950/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90">
               Connect. Share. Belong.
             </p>
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight">
-              Your communities,
-              <br />
-              your circles.
+            <h1 className="font-display text-4xl font-extrabold leading-tight tracking-tight xl:text-5xl">
+              Where chats become communities.
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-white/80">
-              Join Circles of people who share your fields, share Reels and posts, Spark what you
-              love, and grow together. Built by WT Company students from Saint Kizito Save.
+              Join Circles, share Reels and stories, Spark what you love, and grow together.
             </p>
-
-            <ul className="mt-8 space-y-3 text-sm text-white/90">
+            <ul className="mt-6 grid gap-2 text-sm text-white/90">
               {[
-                { icon: <Users size={16} />, text: 'Circles — groups at the heart of Wchat' },
-                { icon: <Sparkles size={16} />, text: 'Loops — short videos from your circles' },
-                { icon: <MessageSquare size={16} />, text: 'Real-time chat, calls and voice notes' },
-                { icon: <ShieldCheck size={16} />, text: 'Verified accounts, safer communities' },
+                { icon: <Users size={15} />, text: 'Circles and communities' },
+                { icon: <Sparkles size={15} />, text: 'Reels, stories, and posts' },
+                { icon: <MessageSquare size={15} />, text: 'Real-time chat and calls' },
+                { icon: <ShieldCheck size={15} />, text: 'Verified, safer accounts' },
               ].map((item) => (
                 <li key={item.text} className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white/15">
-                    {item.icon}
-                  </span>
-                  {item.text}
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/12">{item.icon}</span>
+                  <span>{item.text}</span>
                 </li>
               ))}
             </ul>
           </div>
-
-          <p className="relative text-xs text-white/60">Kigali · Rwanda · and beyond</p>
+          <p className="relative text-xs text-white/65">Kigali · Rwanda · and beyond</p>
         </aside>
 
         {/* ----------------------------------------------------------- form side */}
-        <main className="flex flex-col justify-center px-5 py-10 sm:px-8">
-          <div className="mx-auto w-full max-w-md">
-            <div className="mb-7 flex flex-col items-center gap-3 lg:hidden">
-              <Logo size={46} tagline="Your communities, your circles" />
-            </div>
-            <div className="mb-6 hidden lg:block">
-              <Logo size={44} showWord={false} />
-              <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-ink">
-                {tab === 'register' ? 'Create your Wchat account' : 'Welcome back'}
-              </h2>
-              <p className="mt-1 text-sm text-ink/55">
-                {tab === 'register'
-                  ? 'A few details, one verification code, and you are in.'
-                  : 'Sign in with your email, phone number or username.'}
-              </p>
-            </div>
-
-            <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-xl shadow-ink/5">
-              <div className="grid grid-cols-2 gap-1 p-1.5">
-                <TabButton active={tab === 'register'} onClick={() => setTab('register')}>
-                  Create account
-                </TabButton>
-                <TabButton active={tab === 'login'} onClick={() => setTab('login')}>
-                  Sign in
-                </TabButton>
+        <main className="flex items-center justify-center px-4 py-3 sm:px-6 lg:px-8">
+          <div className="w-full max-w-[440px]">
+            <div className="mb-2 flex items-center justify-center lg:hidden"><Logo size={36} /></div>
+            <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/90 bg-white shadow-[0_18px_50px_-24px_rgba(15,23,42,.18)]">
+              <div className="border-b border-slate-200/80 px-4 pt-3.5 pb-3 sm:px-5">
+                <div className="mb-2.5 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+                  <TabButton active={tab === 'register'} onClick={() => setTab('register')}>Create account</TabButton>
+                  <TabButton active={tab === 'login'} onClick={() => setTab('login')}>Sign in</TabButton>
+                </div>
+                <h2 className="font-display text-[1.35rem] font-extrabold tracking-tight text-slate-950">
+                  {tab === 'register' ? 'Create your account' : 'Welcome back'}
+                </h2>
+                <p className="mt-0.5 text-[12px] text-slate-600">
+                  {tab === 'register' ? 'Quick steps, one verification code.' : 'Sign in with email, phone, or username.'}
+                </p>
               </div>
 
-              <div className="px-5 py-6 sm:px-7">
+              <div className="px-4 py-3.5 sm:px-5">
                 {tab === 'register' ? (
                   <RegisterFlow onSwitch={() => setTab('login')} />
                 ) : (
-                  <LoginForm onSwitch={() => setTab('register')} />
+                  <LoginForm
+                    initialView={searchParams.get('view') === 'reset' ? 'reset' : searchParams.get('view') === 'forgot' ? 'forgot' : 'login'}
+                    initialResetIdentifier={searchParams.get('identifier') || ''}
+                    onSwitch={() => setTab('register')}
+                  />
                 )}
               </div>
             </div>
-
-            <p className="mt-6 text-center text-[11px] leading-relaxed text-ink/45">
+            <p className="mt-2.5 text-center text-[11px] leading-relaxed text-slate-500">
               By continuing you agree to keep Wchat kind: no spam, no scams, no harassment.
             </p>
           </div>
@@ -171,8 +151,8 @@ function TabButton({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl py-2.5 text-sm font-semibold transition ${
-        active ? 'bg-wchat text-white shadow-sm shadow-wchat/30' : 'text-ink/55 hover:bg-surface'
+      className={`rounded-[0.7rem] py-1.5 text-[13px] font-semibold transition ${
+        active ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-600 hover:text-slate-900'
       }`}
     >
       {children}
@@ -182,10 +162,10 @@ function TabButton({ active, onClick, children }) {
 
 /* -------------------------------------------------------------------- login */
 
-function LoginForm({ onSwitch }) {
+function LoginForm({ onSwitch, initialView = 'login', initialResetIdentifier = '' }) {
   const { login, forgotPassword, resetPassword, loading } = useAuth()
-  const [mode, setMode] = useState('login') // login | forgot | reset
-  const [identifier, setIdentifier] = useState('')
+  const [mode, setMode] = useState(initialView)
+  const [identifier, setIdentifier] = useState(initialResetIdentifier)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [code, setCode] = useState('')
@@ -194,215 +174,89 @@ function LoginForm({ onSwitch }) {
   const [destination, setDestination] = useState('')
   const [devCode, setDevCode] = useState('')
 
+  useEffect(() => { setMode(initialView) }, [initialView])
+  useEffect(() => { if (initialResetIdentifier) setIdentifier(initialResetIdentifier) }, [initialResetIdentifier])
+
   const submitLogin = async (event) => {
     event.preventDefault()
-    if (!identifier.trim() || !password) {
-      toast.error('Enter your login details to continue')
-      return
-    }
-    try {
-      await login(identifier.trim(), password)
-    } catch {
-      /* toast already shown */
-    }
+    if (!identifier.trim() || !password) return toast.error('Enter your login details to continue')
+    try { await login(identifier.trim(), password) } catch {}
   }
 
   const submitForgot = async (event) => {
     event.preventDefault()
-    if (!identifier.trim()) {
-      toast.error('Enter the email or phone number on your account')
-      return
-    }
+    if (!identifier.trim()) return toast.error('Enter the email or phone number on your account')
     try {
       const data = await forgotPassword(identifier.trim())
       setDestination(data?.destination || '')
       setDevCode(data?.devCode || '')
+      if (data?.devCode) toast('Dev mode code: ' + data.devCode, { icon: '🔑', duration: 12000 })
       setMode('reset')
-    } catch {
-      /* toast already shown */
-    }
+    } catch {}
   }
 
   const submitReset = async (event) => {
     event.preventDefault()
-    if (!code.trim()) {
-      toast.error('Enter the code we sent you')
-      return
-    }
-    if (newPassword.length < 6) {
-      toast.error('Your new password must be at least 6 characters')
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('The two passwords do not match')
-      return
-    }
+    if (!code.trim()) return toast.error('Enter the code we sent you')
+    if (newPassword.length < 6) return toast.error('Your new password must be at least 6 characters')
+    if (newPassword !== confirmPassword) return toast.error('The two passwords do not match')
     try {
-      await resetPassword({
-        identifier: identifier.trim(),
-        code: code.trim(),
-        newPassword,
-      })
-      setPassword('')
-      setCode('')
-      setNewPassword('')
-      setConfirmPassword('')
-      setShowPassword(false)
-      setMode('login')
-    } catch {
-      /* toast already shown */
-    }
+      await resetPassword({ identifier: identifier.trim(), code: code.trim(), newPassword })
+      setPassword(''); setCode(''); setNewPassword(''); setConfirmPassword(''); setShowPassword(false); setMode('login')
+    } catch {}
   }
 
   if (mode === 'forgot') {
     return (
-      <form onSubmit={submitForgot} className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setMode('login')}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink"
-        >
-          <ArrowLeft size={15} /> Back to sign in
-        </button>
-
-        <div className="rounded-2xl bg-wchat/5 p-4 text-sm leading-relaxed text-ink/65">
-          Enter the email address or phone number linked to your account. We will send a
-          6-digit code to reset your password.
-        </div>
-
+      <form onSubmit={submitForgot} className="space-y-2.5">
+        <BackButton onClick={() => setMode('login')}>Back to sign in</BackButton>
+        <InfoBox>Enter the email address or phone number linked to your account. We’ll send a 6-digit code to reset your password.</InfoBox>
         <Field label="Email or phone number">
-          <div className="relative">
-            <AtSign size={16} className="icon-left" />
-            <input
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              placeholder="you@example.com · +250 788 123 456"
-              autoComplete="username"
-              className={`${inputClass} pl-9`}
-            />
+          <div className="relative"><AtSign size={15} className="icon-left" />
+            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="you@example.com · +250788123456" autoComplete="username" className={inputClass + ' pl-9'} />
           </div>
         </Field>
-
-        <PrimaryButton type="submit" loading={loading}>
-          Send reset code
-        </PrimaryButton>
+        <PrimaryButton type="submit" loading={loading}>Send reset code</PrimaryButton>
       </form>
     )
   }
 
   if (mode === 'reset') {
     return (
-      <form onSubmit={submitReset} className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setMode('login')}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink"
-        >
-          <ArrowLeft size={15} /> Back to sign in
-        </button>
-
-        <div className="rounded-2xl bg-wchat/5 p-4 text-sm leading-relaxed text-ink/65">
-          {destination
-            ? `We sent a reset code to ${destination}.`
-            : 'If that account exists, a reset code is on its way.'}{' '}
-          It expires in 10 minutes.
-          {devCode ? (
-            <span className="mt-2 block font-semibold text-ink">
-              Development code: {devCode}
-            </span>
-          ) : null}
-        </div>
-
+      <form onSubmit={submitReset} className="space-y-2.5">
+        <BackButton onClick={() => setMode('login')}>Back to sign in</BackButton>
+        <InfoBox compact>
+          {(destination ? 'Code sent to ' + destination + '.' : 'If that account exists, a reset code is on its way.')} Expires in 10 minutes.
+          {devCode ? <span className="mt-1 block font-semibold text-slate-900">Development code: {devCode}</span> : null}
+        </InfoBox>
         <Field label="6-digit code">
-          <input
-            value={code}
-            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-            className={`${inputClass} tracking-[0.4em] text-center text-lg font-bold`}
-          />
+          <input value={code} onChange={(e) => setCode(e.target.value.replace(/\\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="••••••" className={inputClass + ' text-center font-bold tracking-[0.35em]'} />
         </Field>
-
-        <Field label="New password" hint="At least 6 characters">
-          <PasswordInput
-            value={newPassword}
-            onChange={setNewPassword}
-            visible={showPassword}
-            onToggle={() => setShowPassword((v) => !v)}
-            autoComplete="new-password"
-          />
-        </Field>
-
-        <Field label="Confirm new password">
-          <PasswordInput
-            value={confirmPassword}
-            onChange={setConfirmPassword}
-            visible={showPassword}
-            onToggle={() => setShowPassword((v) => !v)}
-            autoComplete="new-password"
-          />
-        </Field>
-
-        <PrimaryButton type="submit" loading={loading}>
-          Reset password
-        </PrimaryButton>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="New password"><PasswordInput value={newPassword} onChange={setNewPassword} visible={showPassword} onToggle={() => setShowPassword(v => !v)} autoComplete="new-password" /></Field>
+          <Field label="Confirm"><PasswordInput value={confirmPassword} onChange={setConfirmPassword} visible={showPassword} onToggle={() => setShowPassword(v => !v)} autoComplete="new-password" /></Field>
+        </div>
+        <PrimaryButton type="submit" loading={loading}>Reset password</PrimaryButton>
       </form>
     )
   }
 
   return (
-    <form onSubmit={submitLogin} className="space-y-4">
-      <Field label="Email, phone number or username">
-        <div className="relative">
-          <AtSign size={16} className="icon-left" />
-          <input
-            value={identifier}
-            onChange={(event) => setIdentifier(event.target.value)}
-            placeholder="you@example.com · +250 788 123 456 · keza"
-            autoComplete="username"
-            className={`${inputClass} pl-9`}
-          />
+    <form onSubmit={submitLogin} className="space-y-2.5">
+      <Field label="Email, phone number, or username">
+        <div className="relative"><AtSign size={15} className="icon-left" />
+          <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="you@example.com · +250788123456 · keza" autoComplete="username" className={inputClass + ' pl-9'} />
         </div>
       </Field>
-
       <Field label="Password">
-        <PasswordInput
-          value={password}
-          onChange={setPassword}
-          visible={showPassword}
-          onToggle={() => setShowPassword((v) => !v)}
-          autoComplete="current-password"
-        />
+        <PasswordInput value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword(v => !v)} autoComplete="current-password" />
       </Field>
-
-      <div className="-mt-1 text-right">
-        <button
-          type="button"
-          onClick={() => {
-            setDestination('')
-            setDevCode('')
-            setMode('forgot')
-          }}
-          className="text-sm font-semibold text-wchat hover:underline"
-        >
-          Forgot password?
-        </button>
+      <div className="-mt-0.5 text-right">
+        <button type="button" onClick={() => { setDestination(''); setDevCode(''); setMode('forgot') }} className="text-[12px] font-semibold text-[color:var(--wchat-primary)] hover:underline">Forgot password?</button>
       </div>
-
-      <PrimaryButton type="submit" loading={loading}>
-        Sign in
-      </PrimaryButton>
-
-      <p className="text-center text-sm text-ink/55">
-        New to Wchat?{' '}
-        <button
-          type="button"
-          onClick={onSwitch}
-          className="font-semibold text-wchat hover:underline"
-        >
-          Create an account
-        </button>
+      <PrimaryButton type="submit" loading={loading}>Sign in</PrimaryButton>
+      <p className="pt-0.5 text-center text-[13px] text-slate-600">
+        New to Wchat? <button type="button" onClick={onSwitch} className="font-semibold text-[color:var(--wchat-primary)] hover:underline">Create an account</button>
       </p>
     </form>
   )
@@ -410,21 +264,13 @@ function LoginForm({ onSwitch }) {
 
 /* ----------------------------------------------------------------- register */
 
-const STEPS = ['About you', 'Account', 'Verify']
+const STEPS = ['You', 'Profile', 'Account', 'Verify']
 
-function RegisterFlow() {
+function RegisterFlow({ onSwitch }) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    username: '',
-    gender: '',
-    dateOfBirth: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: '',
-    country: DEFAULT_COUNTRY,
+    firstName: '', lastName: '', username: '', gender: '', dateOfBirth: '',
+    email: '', phoneNumber: '', password: '', confirmPassword: '', country: DEFAULT_COUNTRY,
   })
   const [dialIso, setDialIso] = useState('RW')
   const [showPassword, setShowPassword] = useState(false)
@@ -437,611 +283,257 @@ function RegisterFlow() {
   const [sending, setSending] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const otpRef = useRef(null)
-
   const { requestRegistration, verifyRegistration, resendVerification, loading } = useAuth()
 
   const dial = dialCodes.find((entry) => entry.iso === dialIso)?.dial || DEFAULT_DIAL
   const phonePlaceholder = dial === DEFAULT_DIAL ? RWANDA_PLACEHOLDER : 'Phone number'
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
-  const set = (key) => (event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))
-
-  /* --------------------------------------------------- which channels work */
   useEffect(() => {
-    api
-      .get('/auth/channels')
-      .then(({ data }) =>
-        setChannels({
-          email: data?.email !== false,
-          sms: data?.sms !== false,
-          devMode: data?.devMode !== false,
-        })
-      )
-      .catch(() => {})
+    api.get('/auth/channels').then(({ data }) => setChannels({ email: data?.email !== false, sms: data?.sms !== false, devMode: data?.devMode !== false })).catch(() => {})
   }, [])
 
-  /* --------------------------------------------------- username suggestions */
   const fetchSuggestions = useCallback(async (firstName, lastName) => {
     if (firstName.trim().length < 2 || lastName.trim().length < 2) return
-    try {
-      const { data } = await api.get('/auth/usernames', { params: { firstName, lastName } })
-      setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : [])
-    } catch {
-      /* suggestions are a nicety, never block the form */
-    }
+    try { const { data } = await api.get('/auth/usernames', { params: { firstName, lastName } }); setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []) } catch {}
   }, [])
 
   useEffect(() => {
-    if (step !== 0) return undefined
-    if (form.username) return undefined
+    if (step !== 0 || form.username) return undefined
     const timer = setTimeout(() => fetchSuggestions(form.firstName, form.lastName), 450)
     return () => clearTimeout(timer)
   }, [form.firstName, form.lastName, form.username, step, fetchSuggestions])
 
-  /* ----------------------------------------------- live availability check */
   useEffect(() => {
     const username = form.username
-    if (!username) {
-      setUsernameStatus('idle')
-      return undefined
-    }
-    if (username.length < 3) {
-      setUsernameStatus('invalid')
-      return undefined
-    }
-
-    setUsernameStatus('checking')
-    setUsernameReason('')
-
+    if (!username) { setUsernameStatus('idle'); setUsernameReason(''); return undefined }
+    if (username.length < 3) { setUsernameStatus('invalid'); return undefined }
+    setUsernameStatus('checking'); setUsernameReason('')
     let cancelled = false
     const timer = setTimeout(async () => {
       try {
-        const { data } = await api.get(`/users/check-username/${encodeURIComponent(username)}`)
+        const { data } = await api.get('/users/check-username/' + encodeURIComponent(username))
         if (cancelled) return
-        if (data?.available) {
-          setUsernameStatus('available')
-        } else {
-          setUsernameStatus('taken')
-          if (data?.reason) setUsernameReason(data.reason)
-        }
-      } catch {
-        if (!cancelled) setUsernameStatus('error')
-      }
+        if (data?.available) setUsernameStatus('available')
+        else { setUsernameStatus('taken'); if (data?.reason) setUsernameReason(data.reason) }
+      } catch { if (!cancelled) setUsernameStatus('error') }
     }, 400)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [form.username])
 
-  /* ------------------------------------------------------ resend countdown */
   useEffect(() => {
     if (cooldown <= 0) return undefined
-    const timer = setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
+    const timer = setInterval(() => setCooldown(v => Math.max(0, v - 1)), 1000)
     return () => clearInterval(timer)
   }, [cooldown])
 
   const applyCountry = (name) => {
-    setForm((prev) => ({ ...prev, country: name }))
-    const match = dialCodes.find((entry) => entry.name === name)
+    setForm(prev => ({ ...prev, country: name }))
+    const match = dialCodes.find(e => e.name === name)
     if (match) setDialIso(match.iso)
   }
-
   const applyDial = (iso) => {
     setDialIso(iso)
-    const match = dialCodes.find((entry) => entry.iso === iso)
-    if (match && countries.includes(match.name)) {
-      setForm((prev) => ({ ...prev, country: match.name }))
-    }
+    const match = dialCodes.find(e => e.iso === iso)
+    if (match && countries.includes(match.name)) setForm(prev => ({ ...prev, country: match.name }))
   }
 
-  /* ------------------------------------------------------------ validations */
-  const validateIdentity = () => {
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      toast.error('Please enter your first and last name')
-      return false
+  const validateStep = () => {
+    if (step === 0) {
+      if (!form.firstName.trim() || !form.lastName.trim()) { toast.error('Please enter your first and last name'); return false }
+      if (!form.username || usernameStatus === 'invalid') { toast.error('Pick a username of at least 3 characters'); return false }
+      if (usernameStatus === 'taken') { toast.error(usernameReason || 'That username is already taken'); return false }
     }
-    if (!form.username || usernameStatus === 'invalid') {
-      toast.error('Pick a username of at least 3 characters')
-      return false
+    if (step === 1) {
+      if (!form.gender) { toast.error('Please select your gender'); return false }
+      if (!form.dateOfBirth) { toast.error('Please enter your date of birth'); return false }
+      if (form.dateOfBirth > maxDob) { toast.error('You must be at least ' + MIN_AGE + ' years old'); return false }
     }
-    if (usernameStatus === 'taken') {
-      toast.error(usernameReason || 'That username is already taken')
-      return false
-    }
-    if (!form.gender) {
-      toast.error('Please select your gender so we can set your avatar')
-      return false
-    }
-    if (!form.dateOfBirth) {
-      toast.error('Please enter your date of birth')
-      return false
-    }
-    if (form.dateOfBirth > maxDob) {
-      toast.error(`You must be at least ${MIN_AGE} years old to use Wchat`)
-      return false
+    if (step === 2) {
+      if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(form.email.trim())) { toast.error('Please enter a valid email address'); return false }
+      const digits = form.phoneNumber.replace(/\\D/g, '')
+      if (!digits) { toast.error('Please enter your phone number'); return false }
+      if (dial === DEFAULT_DIAL && digits.length !== 9) { toast.error('Enter a 9-digit Rwandan number, e.g. 788 123 456'); return false }
+      if (dial !== DEFAULT_DIAL && digits.length < 6) { toast.error('Please enter a valid phone number'); return false }
+      if (!form.country) { toast.error('Please select your country'); return false }
+      if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return false }
+      if (form.password !== form.confirmPassword) { toast.error('Passwords do not match'); return false }
     }
     return true
   }
 
-  const validateAccount = () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      toast.error('Please enter a valid email address')
-      return false
-    }
-    const digits = form.phoneNumber.replace(/\D/g, '')
-    if (!digits) {
-      toast.error('Please enter your phone number')
-      return false
-    }
-    if (dial === DEFAULT_DIAL && digits.length !== 9) {
-      toast.error('Enter a 9-digit Rwandan number, e.g. 788 123 456')
-      return false
-    }
-    if (dial !== DEFAULT_DIAL && digits.length < 6) {
-      toast.error('Please enter a valid phone number')
-      return false
-    }
-    if (!form.country) {
-      toast.error('Please select your country')
-      return false
-    }
-    if (form.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      return false
-    }
-    if (form.password !== form.confirmPassword) {
-      toast.error('Passwords do not match')
-      return false
-    }
-    return true
-  }
-
-  const goNext = () => {
-    if (step === 0 && !validateIdentity()) return
-    if (step === 1 && !validateAccount()) return
-    setStep((value) => Math.min(STEPS.length - 1, value + 1))
-  }
-
+  const goNext = () => { if (validateStep()) setStep(v => Math.min(3, v + 1)) }
   const buildPayload = (channel) => ({
-    firstName: form.firstName.trim(),
-    lastName: form.lastName.trim(),
-    username: form.username,
-    gender: form.gender,
-    dateOfBirth: form.dateOfBirth,
-    email: form.email.trim(),
-    phoneNumber: combinePhone(dial, form.phoneNumber),
-    password: form.password,
-    country: form.country,
-    channel,
+    firstName: form.firstName.trim(), lastName: form.lastName.trim(), username: form.username,
+    gender: form.gender, dateOfBirth: form.dateOfBirth, email: form.email.trim(),
+    phoneNumber: combinePhone(dial, form.phoneNumber), password: form.password, country: form.country, channel,
   })
 
   const sendCode = async (channel) => {
     setSending(true)
     try {
       const data = await requestRegistration(buildPayload(channel))
-      setPending(data)
-      setOtp('')
-      setCooldown(data?.resendInSeconds || 60)
-      if (data?.devCode) {
-        toast(`Dev mode code: ${data.devCode}`, { icon: '🔑', duration: 12000 })
-      } else {
-        toast.success(`Code sent to ${data?.destination}`)
-      }
+      setPending(data); setOtp(''); setCooldown(data?.resendInSeconds || 60)
+      if (data?.devCode) toast('Dev mode code: ' + data.devCode, { icon: '🔑', duration: 12000 })
+      else toast.success('Code sent to ' + data?.destination)
       setTimeout(() => otpRef.current?.focus(), 120)
-    } catch {
-      /* toast already shown */
-    } finally {
-      setSending(false)
-    }
+    } catch {} finally { setSending(false) }
   }
 
   const resend = async () => {
     if (!pending?.identifier) return
     try {
       const data = await resendVerification(pending.identifier)
-      setPending((prev) => ({ ...prev, ...data }))
-      setCooldown(data?.resendInSeconds || 60)
-      if (data?.devCode) {
-        toast(`Dev mode code: ${data.devCode}`, { icon: '🔑', duration: 12000 })
-      } else {
-        toast.success('A new code is on its way')
-      }
-    } catch {
-      /* toast already shown */
-    }
+      setPending(prev => ({ ...prev, ...data })); setCooldown(data?.resendInSeconds || 60)
+      if (data?.devCode) toast('Dev mode code: ' + data.devCode, { icon: '🔑', duration: 12000 })
+      else toast.success('A new code is on its way')
+    } catch {}
   }
 
   const confirm = async (event) => {
     event.preventDefault()
-    if (otp.replace(/\D/g, '').length !== 6) {
-      toast.error('Enter the 6-digit code')
-      return
-    }
-    try {
-      // On success the token is stored and the app routes to the dashboard.
-      await verifyRegistration({ identifier: pending.identifier, code: otp.trim() })
-    } catch {
-      setOtp('')
-      otpRef.current?.focus()
-    }
+    if (otp.replace(/\\D/g, '').length !== 6) return toast.error('Enter the 6-digit code')
+    try { await verifyRegistration({ identifier: pending.identifier, code: otp.trim() }) }
+    catch { setOtp(''); otpRef.current?.focus() }
   }
 
-  /* --------------------------------------------------------------- username */
   const usernameHint = useMemo(() => {
     switch (usernameStatus) {
-      case 'checking':
-        return (
-          <span className="flex items-center gap-1.5 text-ink/50">
-            <Loader2 size={12} className="animate-spin" /> Checking…
-          </span>
-        )
-      case 'available':
-        return (
-          <span className="flex items-center gap-1.5 text-emerald-600">
-            <Check size={12} /> {formatHandle(form.username)} is available
-          </span>
-        )
-      case 'taken':
-        return (
-          <span className="flex items-center gap-1.5 text-rose-600">
-            <X size={12} /> {usernameReason || `${formatHandle(form.username)} is taken`}
-          </span>
-        )
-      case 'invalid':
-        return <span className="text-rose-600">At least 3 characters: letters, numbers, '.' or '_'</span>
-      case 'error':
-        return <span className="text-amber-600">Couldn't check right now — we'll verify on submit</span>
-      default:
-        return <span className="text-ink/40">Your handle on Wchat, e.g. keza</span>
+      case 'checking': return <span className="flex items-center gap-1.5 text-slate-500"><Loader2 size={11} className="animate-spin" /> Checking…</span>
+      case 'available': return <span className="flex items-center gap-1.5 text-emerald-600"><Check size={11} /> {formatHandle(form.username)} is available</span>
+      case 'taken': return <span className="flex items-center gap-1.5 text-rose-600"><X size={11} /> {usernameReason || (formatHandle(form.username) + ' is taken')}</span>
+      case 'invalid': return <span className="text-rose-600">3+ characters: letters, numbers, . or _</span>
+      case 'error': return <span className="text-amber-700">Couldn’t check now — we’ll verify on submit</span>
+      default: return <span className="text-slate-500">Your handle, e.g. keza</span>
     }
   }, [usernameStatus, usernameReason, form.username])
 
   return (
-    <div className="space-y-6">
-      {/* --------------------------------------------------------------- steps */}
-      <ol className="flex items-center gap-2">
+    <div className="space-y-2.5">
+      <div className="flex gap-1.5">
         {STEPS.map((label, index) => (
-          <li key={label} className="flex flex-1 items-center gap-2">
-            <span
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                index < step
-                  ? 'bg-wchat text-white'
-                  : index === step
-                    ? 'bg-ink text-white'
-                    : 'bg-surface text-ink/40'
-              }`}
-            >
-              {index < step ? <Check size={13} /> : index + 1}
-            </span>
-            <span
-              className={`hidden text-[11px] font-semibold sm:block ${
-                index === step ? 'text-ink' : 'text-ink/40'
-              }`}
-            >
-              {label}
-            </span>
-            {index < STEPS.length - 1 ? (
-              <span className={`h-0.5 flex-1 rounded-full ${index < step ? 'bg-wchat/40' : 'bg-line'}`} />
-            ) : null}
-          </li>
-        ))}
-      </ol>
-
-      {/* ------------------------------------------------------------ step 0 */}
-      {step === 0 ? (
-        <div className="animate-fade-in space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="First name">
-              <input
-                value={form.firstName}
-                onChange={set('firstName')}
-                placeholder="Keza"
-                autoComplete="given-name"
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Last name">
-              <input
-                value={form.lastName}
-                onChange={set('lastName')}
-                placeholder="Mugisha"
-                autoComplete="family-name"
-                className={inputClass}
-              />
-            </Field>
+          <div key={label} className="flex-1">
+            <div className={'h-1.5 rounded-full transition-colors ' + (index <= step ? 'bg-gradient-brand' : 'bg-slate-200')} />
+            <span className={'mt-1 block text-[10px] font-semibold ' + (index === step ? 'text-slate-800' : 'text-slate-400')}>{label}</span>
           </div>
+        ))}
+      </div>
 
+      {step === 0 ? (
+        <div className="animate-fade-in space-y-2.5">
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="First name"><input value={form.firstName} onChange={set('firstName')} placeholder="Keza" autoComplete="given-name" className={inputClass} /></Field>
+            <Field label="Last name"><input value={form.lastName} onChange={set('lastName')} placeholder="Mugisha" autoComplete="family-name" className={inputClass} /></Field>
+          </div>
           <Field label="Username" hint={usernameHint}>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-wchat">
-                @
-              </span>
-              <input
-                value={form.username}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, username: normalizeUsernameInput(event.target.value) }))
-                }
-                placeholder="keza"
-                autoComplete="off"
-                className={`${inputClass} pl-8`}
-              />
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[color:var(--wchat-primary)]">@</span>
+              <input value={form.username} onChange={(e) => setForm(prev => ({ ...prev, username: normalizeUsernameInput(e.target.value) }))} placeholder="keza" autoComplete="off" className={inputClass + ' pl-8'} />
             </div>
           </Field>
-
           {suggestions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              <span className="w-full text-[11px] font-medium uppercase tracking-wide text-ink/40">
-                Suggestions for you
-              </span>
-              {suggestions.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, username: suggestion }))}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    form.username === suggestion
-                      ? 'border-wchat bg-wchat text-white'
-                      : 'border-line bg-white text-ink/70 hover:border-wchat hover:text-wchat'
-                  }`}
-                >
-                  @{suggestion}
-                </button>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.slice(0, 4).map(s => (
+                <button key={s} type="button" onClick={() => setForm(prev => ({ ...prev, username: s }))} className={'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition ' + (form.username === s ? 'border-transparent bg-gradient-brand text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[color:var(--wchat-primary)]/35')}>@{s}</button>
               ))}
             </div>
           ) : null}
+        </div>
+      ) : null}
 
-          <Field label="Gender" hint={<span className="text-ink/40">We create an avatar to match</span>}>
-            <div className="grid grid-cols-2 gap-2">
-              {GENDERS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, gender: option.id }))}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
-                    form.gender === option.id
-                      ? 'border-wchat bg-wchat-50 text-wchat-700'
-                      : 'border-line bg-white text-ink/70 hover:border-wchat/40'
-                  }`}
-                >
-                  <span aria-hidden>{option.emoji}</span>
-                  {option.label}
+      {step === 1 ? (
+        <div className="animate-fade-in space-y-2.5">
+          <Field label="Gender">
+            <div className="grid grid-cols-4 gap-1.5">
+              {GENDERS.map(option => (
+                <button key={option.id} type="button" onClick={() => setForm(prev => ({ ...prev, gender: option.id }))} className={'rounded-xl border px-1 py-1.5 text-center text-[10px] font-semibold leading-tight transition ' + (form.gender === option.id ? 'border-transparent bg-gradient-brand text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-[color:var(--wchat-primary)]/35')}>
+                  <span className="block text-[13px] leading-none">{option.emoji}</span>
+                  <span className="mt-0.5 block">{option.label}</span>
                 </button>
               ))}
             </div>
           </Field>
-
-          <Field label="Date of birth" hint={<span className="text-ink/40">Used for age-appropriate features</span>}>
-            <div className="relative">
-              <Calendar size={15} className="icon-left" />
-              <input
-                type="date"
-                max={maxDob}
-                value={form.dateOfBirth}
-                onChange={set('dateOfBirth')}
-                className={`${inputClass} pl-9`}
-              />
+          <Field label="Date of birth">
+            <div className="relative"><Calendar size={14} className="icon-left" />
+              <input type="date" max={maxDob} value={form.dateOfBirth} onChange={set('dateOfBirth')} className={inputClass + ' pl-9'} />
             </div>
           </Field>
+          <p className="text-[11px] text-slate-500">Used for age-appropriate features. Social sign-in can be added later.</p>
         </div>
       ) : null}
 
-      {/* ------------------------------------------------------------ step 1 */}
-      {step === 1 ? (
-        <div className="animate-fade-in space-y-5">
+      {step === 2 ? (
+        <div className="animate-fade-in space-y-2.5">
           <Field label="Email">
-            <div className="relative">
-              <Mail size={15} className="icon-left" />
-              <input
-                type="email"
-                value={form.email}
-                onChange={set('email')}
-                placeholder="keza@example.com"
-                autoComplete="email"
-                className={`${inputClass} pl-9`}
-              />
+            <div className="relative"><Mail size={14} className="icon-left" />
+              <input type="email" value={form.email} onChange={set('email')} placeholder="keza@example.com" autoComplete="email" className={inputClass + ' pl-9'} />
             </div>
           </Field>
-
-          <Field
-            label="Phone number"
-            hint={
-              <span className="text-ink/40">
-                Country code {dial} · {dialCodes.find((entry) => entry.iso === dialIso)?.name}
-              </span>
-            }
-          >
+          <Field label="Phone number" hint={<span className="text-slate-500">{dial} · {dialCodes.find(e => e.iso === dialIso)?.name}</span>}>
             <div className="flex gap-2">
               <div className="relative shrink-0">
-                <select
-                  value={dialIso}
-                  onChange={(event) => applyDial(event.target.value)}
-                  aria-label="Country calling code"
-                  className={`${inputClass} w-[7.5rem] appearance-none pr-7`}
-                >
-                  {dialCodes.map((entry) => (
-                    <option key={entry.iso} value={entry.iso}>
-                      {getFlag(entry.iso)} {entry.dial}
-                    </option>
-                  ))}
+                <select value={dialIso} onChange={(e) => applyDial(e.target.value)} aria-label="Country calling code" className={inputClass + ' w-[6.5rem] appearance-none pr-5 text-[13px]'}>
+                  {dialCodes.map(entry => <option key={entry.iso} value={entry.iso}>{getFlag(entry.iso)} {entry.dial}</option>)}
                 </select>
-                <ChevronDown size={14} className="icon-right" />
+                <ChevronDown size={13} className="icon-right" />
               </div>
-              <input
-                value={form.phoneNumber}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    phoneNumber: event.target.value.replace(/[^\d ]/g, '').slice(0, 12),
-                  }))
-                }
-                placeholder={phonePlaceholder}
-                inputMode="tel"
-                autoComplete="tel-national"
-                className={inputClass}
-              />
+              <input value={form.phoneNumber} onChange={(e) => setForm(prev => ({ ...prev, phoneNumber: e.target.value.replace(/[^d ]/g, '').slice(0, 12) }))} placeholder={phonePlaceholder} inputMode="tel" autoComplete="tel-national" className={inputClass} />
             </div>
           </Field>
-
-          <Field label="Country">
-            <div className="relative">
-              <Globe size={15} className="icon-left" />
-              <select
-                value={form.country}
-                onChange={(event) => applyCountry(event.target.value)}
-                className={`${inputClass} appearance-none pl-9 pr-8`}
-              >
-                <option value="">Select your country</option>
-                {countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="icon-right" />
-            </div>
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Password">
-              <PasswordInput
-                value={form.password}
-                onChange={(value) => setForm((prev) => ({ ...prev, password: value }))}
-                visible={showPassword}
-                onToggle={() => setShowPassword((v) => !v)}
-                autoComplete="new-password"
-              />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Country">
+              <div className="relative"><Globe size={14} className="icon-left" />
+                <select value={form.country} onChange={(e) => applyCountry(e.target.value)} className={inputClass + ' appearance-none pl-8 pr-6 text-[13px]'}>
+                  <option value="">Country</option>
+                  {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <ChevronDown size={13} className="icon-right" />
+              </div>
             </Field>
-            <Field label="Confirm password">
-              <PasswordInput
-                value={form.confirmPassword}
-                onChange={(value) => setForm((prev) => ({ ...prev, confirmPassword: value }))}
-                visible={showPassword}
-                onToggle={() => setShowPassword((v) => !v)}
-                autoComplete="new-password"
-              />
-            </Field>
+            <Field label="Password"><PasswordInput value={form.password} onChange={(v) => setForm(prev => ({ ...prev, password: v }))} visible={showPassword} onToggle={() => setShowPassword(v => !v)} autoComplete="new-password" /></Field>
           </div>
+          <Field label="Confirm password"><PasswordInput value={form.confirmPassword} onChange={(v) => setForm(prev => ({ ...prev, confirmPassword: v }))} visible={showPassword} onToggle={() => setShowPassword(v => !v)} autoComplete="new-password" /></Field>
         </div>
       ) : null}
 
-      {/* ------------------------------------------------------------ step 2 */}
-      {step === 2 ? (
-        <div className="animate-fade-in space-y-5">
-          <div className="rounded-2xl border border-line bg-surface p-4">
-            <p className="text-sm font-semibold text-ink">Verify your account</p>
-            <p className="mt-1 text-xs leading-relaxed text-ink/55">
-              Choose where to receive your 6-digit code. Your account is created only after the
-              code is confirmed.
-            </p>
-          </div>
-
+      {step === 3 ? (
+        <div className="animate-fade-in space-y-2.5">
+          <InfoBox compact>Choose where to receive your 6-digit code. Your account is created only after confirmation.</InfoBox>
           <div className="space-y-2">
-            <ChannelOption
-              active={pending?.channel === 'email'}
-              disabled={sending || !(channels.email || channels.devMode)}
-              icon={<Mail size={16} />}
-              title="Email"
-              subtitle={form.email}
-              note={channels.email ? '' : channels.devMode ? 'dev mode: code shows on screen' : 'not available right now'}
-              onClick={() => sendCode('email')}
-            />
-            <ChannelOption
-              active={pending?.channel === 'sms'}
-              disabled={sending || !(channels.sms || channels.devMode)}
-              icon={<Phone size={16} />}
-              title="SMS"
-              subtitle={combinePhone(dial, form.phoneNumber)}
-              note={channels.sms ? '' : channels.devMode ? 'dev mode: code shows on screen' : 'not available right now'}
-              onClick={() => sendCode('sms')}
-            />
+            <ChannelOption active={pending?.channel === 'email'} disabled={sending || !(channels.email || channels.devMode)} icon={<Mail size={15} />} title="Email" subtitle={form.email} note={channels.email ? '' : channels.devMode ? 'dev mode: code shows on screen' : 'not available'} onClick={() => sendCode('email')} />
+            <ChannelOption active={pending?.channel === 'sms'} disabled={sending || !(channels.sms || channels.devMode)} icon={<Phone size={15} />} title="SMS" subtitle={combinePhone(dial, form.phoneNumber)} note={channels.sms ? '' : channels.devMode ? 'dev mode: code shows on screen' : 'not available'} onClick={() => sendCode('sms')} />
           </div>
-
           {pending ? (
-            <form onSubmit={confirm} className="animate-fade-in space-y-4">
-              <Field
-                label="Verification code"
-                hint={
-                  <span className="text-ink/45">
-                    Sent to {pending.destination}
-                    {pending.devCode ? ' · dev code shown in the toast' : ''}
-                  </span>
-                }
-              >
-                <input
-                  ref={otpRef}
-                  value={otp}
-                  onChange={(event) =>
-                    setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))
-                  }
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="••••••"
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3.5 text-center text-2xl font-bold tracking-[0.5em] text-ink outline-none transition focus:border-wchat focus:ring-4 focus:ring-wchat/10"
-                />
+            <form onSubmit={confirm} className="space-y-2.5">
+              <Field label="Verification code" hint={<span className="text-slate-500">Sent to {pending.destination}</span>}>
+                <input ref={otpRef} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="••••••" className={inputClass + ' text-center text-lg font-bold tracking-[0.4em]'} />
               </Field>
-
-              <PrimaryButton type="submit" loading={loading}>
-                Verify &amp; create my account
-              </PrimaryButton>
-
-              <div className="text-center text-xs text-ink/50">
-                Didn't get it?{' '}
-                <button
-                  type="button"
-                  onClick={resend}
-                  disabled={cooldown > 0}
-                  className="font-semibold text-wchat hover:underline disabled:cursor-not-allowed disabled:text-ink/30"
-                >
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
-                </button>{' '}
-                ·{' '}
-                <button
-                  type="button"
-                  onClick={() => setPending(null)}
-                  className="font-semibold text-ink/70 hover:underline"
-                >
-                  Change method
-                </button>
+              <PrimaryButton type="submit" loading={loading}>Verify & create account</PrimaryButton>
+              <div className="text-center text-[11px] text-slate-500">
+                Didn’t get it? <button type="button" onClick={resend} disabled={cooldown > 0} className="font-semibold text-[color:var(--wchat-primary)] hover:underline disabled:text-slate-400">{cooldown > 0 ? ('Resend in ' + cooldown + 's') : 'Resend'}</button>
+                {' · '}<button type="button" onClick={() => setPending(null)} className="font-semibold text-slate-600 hover:underline">Change</button>
               </div>
             </form>
           ) : (
-            <p className="text-center text-xs text-ink/45">
-              Pick a method above to receive your code.
-            </p>
+            <p className="text-center text-[11px] text-slate-500">Pick a method above to receive your code.</p>
           )}
         </div>
       ) : null}
 
-      {/* ------------------------------------------------------------ controls */}
-      {step < 2 ? (
-        <div className="flex items-center gap-3 pt-1">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((value) => value - 1)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-4 py-3 text-sm font-semibold text-ink/70 transition hover:border-wchat/40 hover:text-wchat"
-            >
-              <ArrowLeft size={15} /> Back
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={goNext}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-wchat py-3 text-sm font-semibold text-white shadow-lg shadow-wchat/25 transition hover:bg-wchat-600"
-          >
-            Continue
+      <div className="flex items-center gap-2">
+        {step > 0 ? (
+          <button type="button" onClick={() => setStep(v => step === 3 ? 2 : v - 1)} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-[13px] font-semibold text-slate-700 transition hover:border-[color:var(--wchat-primary)]/35 hover:text-[color:var(--wchat-primary)]">
+            <ArrowLeft size={14} /> Back
           </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setStep(1)}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/60 transition hover:text-wchat"
-        >
-          <ArrowLeft size={15} /> Back to my details
-        </button>
-      )}
+        ) : null}
+        {step < 3 ? (
+          <button type="button" onClick={goNext} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-brand text-[13px] font-bold text-white shadow-glow transition hover:brightness-105">Continue</button>
+        ) : null}
+      </div>
+
+      <p className="text-center text-[13px] text-slate-600">
+        Already on Wchat? <button type="button" onClick={onSwitch} className="font-semibold text-[color:var(--wchat-primary)] hover:underline">Sign in</button>
+      </p>
     </div>
   )
 }
@@ -1050,28 +542,12 @@ function RegisterFlow() {
 
 function ChannelOption({ active, disabled, icon, title, subtitle, note, onClick }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition disabled:opacity-60 ${
-        active ? 'border-wchat bg-wchat-50' : 'border-line bg-white hover:border-wchat/50'
-      }`}
-    >
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-          active ? 'bg-wchat text-white' : 'bg-surface text-ink/60'
-        }`}
-      >
-        {icon}
-      </span>
+    <button type="button" onClick={onClick} disabled={disabled} className={'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition disabled:opacity-60 ' + (active ? 'border-[color:var(--wchat-primary)]/35 bg-[color:var(--wchat-primary-soft)]' : 'border-slate-200 bg-white hover:border-[color:var(--wchat-primary)]/30')}>
+      <span className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ' + (active ? 'bg-gradient-brand text-white' : 'bg-slate-100 text-slate-600')}>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-          {title}
-          {active ? <Check size={14} className="text-wchat" /> : null}
-        </span>
-        <span className="block truncate text-xs text-ink/50">{subtitle}</span>
-        {note ? <span className="block text-[11px] text-amber-600">{note}</span> : null}
+        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-900">{title}{active ? <Check size={13} className="text-[color:var(--wchat-primary)]" /> : null}</span>
+        <span className="block truncate text-[11px] text-slate-500">{subtitle}</span>
+        {note ? <span className="block text-[10px] font-medium text-amber-700">{note}</span> : null}
       </span>
     </button>
   )
@@ -1080,11 +556,9 @@ function ChannelOption({ active, disabled, icon, title, subtitle, note, onClick 
 function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-ink/45">
-        {label}
-      </span>
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
       {children}
-      {hint ? <span className="mt-1.5 block text-[11px]">{hint}</span> : null}
+      {hint ? <span className="mt-0.5 block text-[10px] leading-snug">{hint}</span> : null}
     </label>
   )
 }
@@ -1092,22 +566,10 @@ function Field({ label, hint, children }) {
 function PasswordInput({ value, onChange, visible, onToggle, autoComplete }) {
   return (
     <div className="relative">
-      <Lock size={15} className="icon-left" />
-      <input
-        type={visible ? 'text' : 'password'}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="••••••••"
-        autoComplete={autoComplete}
-        className={`${inputClass} pl-9 pr-10`}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={visible ? 'Hide password' : 'Show password'}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-ink/40 transition hover:text-ink"
-      >
-        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      <Lock size={14} className="icon-left" />
+      <input type={visible ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} placeholder="••••••••" autoComplete={autoComplete} className={inputClass + ' pl-8 pr-9'} />
+      <button type="button" onClick={onToggle} aria-label={visible ? 'Hide password' : 'Show password'} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700">
+        {visible ? <EyeOff size={14} /> : <Eye size={14} />}
       </button>
     </div>
   )
@@ -1115,16 +577,19 @@ function PasswordInput({ value, onChange, visible, onToggle, autoComplete }) {
 
 function PrimaryButton({ children, loading, type = 'button' }) {
   return (
-    <button
-      type={type}
-      disabled={loading}
-      className="flex w-full items-center justify-center gap-2 rounded-xl bg-wchat py-3 text-sm font-semibold text-white shadow-lg shadow-wchat/25 transition hover:bg-wchat-600 disabled:opacity-60"
-    >
-      {loading ? <Loader2 size={18} className="animate-spin" /> : null}
+    <button type={type} disabled={loading} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand text-[13px] font-bold text-white shadow-glow transition hover:brightness-105 disabled:opacity-60">
+      {loading ? <Loader2 size={16} className="animate-spin" /> : null}
       {children}
     </button>
   )
 }
 
-const inputClass =
-  'w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder-ink/35 outline-none transition focus:border-wchat focus:ring-4 focus:ring-wchat/10'
+function BackButton({ onClick, children }) {
+  return <button type="button" onClick={onClick} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-600 hover:text-slate-900"><ArrowLeft size={14} /> {children}</button>
+}
+
+function InfoBox({ children, compact }) {
+  return <div className={'rounded-xl border border-slate-200 bg-white leading-relaxed text-slate-700 ' + (compact ? 'px-3 py-2 text-[11px]' : 'px-3 py-2.5 text-[12px]')}>{children}</div>
+}
+
+const inputClass = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900 placeholder-slate-400 outline-none transition focus:border-[color:var(--wchat-primary)]/45 focus:ring-4 focus:ring-[color:var(--wchat-primary)]/10'

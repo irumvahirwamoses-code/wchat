@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SocketProvider } from './context/SocketContext'
 import { ChatProvider } from './context/ChatContext'
@@ -13,6 +13,13 @@ import OnboardingPage from './pages/OnboardingPage'
 import ProfilePage from './pages/ProfilePage'
 import FeedbackResultsPage from './components/FeedbackResultsPage'
 import api from './config/api'
+
+function AuthAlias({ mode }) {
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  params.set('mode', mode)
+  return <Navigate to={`/auth?${params.toString()}`} replace />
+}
 
 function AppRoutes() {
   const { token, user, isSuperAdmin } = useAuth()
@@ -56,6 +63,10 @@ function AppRoutes() {
         path="/auth"
         element={token ? <Navigate to="/" replace /> : <AuthPage />}
       />
+      <Route path="/login" element={token ? <Navigate to="/" replace /> : <AuthAlias mode="login" />} />
+      <Route path="/register" element={token ? <Navigate to="/" replace /> : <AuthAlias mode="register" />} />
+      <Route path="/forgot-password" element={token ? <Navigate to="/" replace /> : <Navigate to="/auth?mode=login&view=forgot" replace />} />
+      <Route path="/reset-password" element={token ? <Navigate to="/" replace /> : <Navigate to="/auth?mode=login&view=reset" replace />} />
       <Route
         path="/onboarding"
         element={
@@ -80,8 +91,21 @@ function AppRoutes() {
           )
         }
       />
+      <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="/chats" element={<Navigate to="/" replace />} />
       <Route path="/join/:code" element={<JoinCirclePage />} />
-      <Route path="/user/:userId" element={<ProfilePage />} />
+      <Route
+        path="/user/:userId"
+        element={
+          !token ? (
+            <Navigate to="/auth" replace />
+          ) : needsOnboarding ? (
+            <Navigate to="/onboarding" replace />
+          ) : (
+            <ProfilePage />
+          )
+        }
+      />
       <Route path="/feedback" element={<FeedbackResultsPage onClose={() => {}} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
