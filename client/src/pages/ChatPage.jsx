@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import ChatBox from '../components/ChatBox'
 import ChatList from '../components/ChatList'
 import CallModal from '../components/CallModal'
@@ -42,10 +42,25 @@ import useWebRTC from '../hooks/useWebRTC'
 export default function ChatPage() {
   const { user, isSuperAdmin } = useAuth()
   const { unreadCount: notificationUnreadCount } = useChat()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     document.title = 'Messages | Wchat'
   }, [])
+
+  // Other pages (notably ProfilePage's rail) can send the member back to a
+  // specific section through history state. Apply it on mount *and* whenever a
+  // new state arrives, then consume it so a refresh does not reopen it.
+  useEffect(() => {
+    const next = location.state
+    if (!next) return
+    if (next.tab) setTab(next.tab)
+    if (next.openCreate) setCreateOpen(true)
+    if (next.openNotifications) setNotificationOpen(true)
+    navigate(location.pathname, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
   const { selectedChat, selectChat, fetchChats, chats, notifications } = useChat()
   const {
     callState,
@@ -64,12 +79,14 @@ export default function ChatPage() {
     toggleCamera,
   } = useWebRTC()
 
-  const [tab, setTab] = useState('home')
+  const [tab, setTab] = useState(location.state?.tab || 'home')
   const [mobileShowChat, setMobileShowChat] = useState(false)
-  const [notificationOpen, setNotificationOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(
+    Boolean(location.state?.openNotifications)
+  )
 
   /* ------------------------------------------------------------ create flow */
-  const [createOpen, setCreateOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(Boolean(location.state?.openCreate))
   const [showPostComposer, setShowPostComposer] = useState(false)
   const [showStoryComposer, setShowStoryComposer] = useState(false)
   const [showReelComposer, setShowReelComposer] = useState(false)
@@ -133,10 +150,14 @@ export default function ChatPage() {
     [selectChat]
   )
 
-  const navigate = useNavigate()
-  const openProfileModal = useCallback((target) => {
-    if (target?._id) navigate(`/user/${target._id}`)
-  }, [navigate])
+  const openProfileModal = useCallback(
+    (target) => {
+      const id =
+        typeof target === 'string' ? target : target?._id || target?.id || null
+      if (id) navigate(`/user/${id}`, { state: { from: tab } })
+    },
+    [navigate, tab]
+  )
 
   const startCallWith = useCallback(
     (type, target) => {
@@ -202,6 +223,7 @@ export default function ChatPage() {
       case 'profile':
         return (
           <ProfilePage
+            embedded
             onEdit={() => setEditProfileOpen(true)}
             onOpenProfile={() => setTab('profile')}
           />
@@ -217,7 +239,7 @@ export default function ChatPage() {
               } w-full min-w-0 flex-col border-r border-zinc-800/80 bg-zinc-900/40 md:flex md:w-[340px] lg:w-[380px]`}
             >
               <SideDrawer
-                onOpenProfile={() => setProfileUser(user)}
+                onOpenProfile={() => goTab('profile')}
                 onOpenDiscovery={() => setDiscoveryOpen(true)}
                 onNewGroup={() => setGroupOpen(true)}
                 onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
@@ -268,19 +290,17 @@ export default function ChatPage() {
         title="Messages | Wchat"
         description="Your Wchat messages, Circles, and community activity. This is a private app page and is not indexed by search engines."
       />
-      {tab !== 'profile' && (
-        <SideRail
-          active={tab}
-          onChange={goTab}
-          onNewPost={() => goTab('create')}
-          onOpenProfile={() => setTab('profile')}
-          onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
-          onOpenFeedback={() => setFeedbackOpen(true)}
-          onOpenNotifications={() => setNotificationOpen(true)}
-          unreadChat={unreadTotal}
-          unreadNotifications={notificationUnreadCount}
-        />
-      )}
+      <SideRail
+        active={tab}
+        onChange={goTab}
+        onNewPost={() => goTab('create')}
+        onOpenProfile={() => setTab('profile')}
+        onOpenAdmin={isSuperAdmin ? () => setAdminOpen(true) : null}
+        onOpenFeedback={() => setFeedbackOpen(true)}
+        onOpenNotifications={() => setNotificationOpen(true)}
+        unreadChat={unreadTotal}
+        unreadNotifications={notificationUnreadCount}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-h-0 flex-1">{tabContent}</main>

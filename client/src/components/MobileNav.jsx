@@ -11,10 +11,11 @@ export default function MobileNav({
   unread = 0,
   onOpenNotifications,
   unreadNotifications = 0,
+  className = '',
 }) {
   const secondary = SECONDARY_NAV.filter((item) => item.id === 'chat')
   return (
-    <nav className="pb-safe border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur md:hidden">
+    <nav className={`pb-safe border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur md:hidden ${className}`.trim()}>
       <div className="flex justify-between px-2 pb-2 pt-1">
         {PRIMARY_NAV.map((item) => {
           const Icon = item.icon
