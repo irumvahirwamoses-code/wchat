@@ -19,24 +19,36 @@ export default function CallModal({
   const remoteAudioRef = useRef(null)
 
   useEffect(() => {
-    if (localRef.current) localRef.current.srcObject = localStream || null
+    const el = localRef.current
+    if (!el) return
+    if (el.srcObject !== localStream) el.srcObject = localStream || null
+    el.muted = true
+    if (localStream) el.play?.().catch(() => {})
   }, [localStream])
 
   useEffect(() => {
-    if (remoteRef.current) remoteRef.current.srcObject = remoteStream || null
+    const el = remoteRef.current
+    if (!el) return
+    if (el.srcObject !== remoteStream) el.srcObject = remoteStream || null
+    if (remoteStream) el.play?.().catch(() => {})
   }, [remoteStream])
 
   useEffect(() => {
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream || null
+    const el = remoteAudioRef.current
+    if (!el) return
+    if (el.srcObject !== remoteStream) el.srcObject = remoteStream || null
+    if (remoteStream) el.play?.().catch(() => {})
   }, [remoteStream])
 
   const isVideo = callType === 'video'
+  const hasRemoteVideo = Boolean(remoteStream?.getVideoTracks?.().some((t) => t.readyState === 'live'))
+  const hasRemoteAudio = Boolean(remoteStream?.getAudioTracks?.().some((t) => t.readyState === 'live'))
   const status =
     state === 'outgoing'
       ? 'Calling…'
-      : !remoteStream
-        ? 'Connecting…'
-        : 'Connected'
+      : remoteStream
+        ? (hasRemoteVideo || hasRemoteAudio ? 'Connected' : 'Connecting media…')
+        : 'Connecting…'
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-zinc-950">
@@ -46,54 +58,52 @@ export default function CallModal({
             ref={remoteRef}
             autoPlay
             playsInline
-            className={`h-full w-full object-cover ${remoteStream ? '' : 'hidden'}`}
+            className={`h-full w-full bg-black object-cover ${hasRemoteVideo ? '' : 'hidden'}`}
           />
         ) : (
           <audio ref={remoteAudioRef} autoPlay playsInline />
         )}
 
-        {isVideo && !remoteStream ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-            <Avatar name={peerName} size={112} />
-            <p className="text-lg font-medium text-zinc-200">{peerName}</p>
-            <p className="text-sm text-amber-400">{status}</p>
+        {(isVideo && !hasRemoteVideo) || !isVideo ? (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,rgba(37,99,235,.18),transparent_45%),#09090b]">
+            <Avatar name={peerName} size={isVideo ? 112 : 120} />
+            <p className="text-lg font-semibold text-zinc-100">{peerName}</p>
+            <p className="text-sm text-blue-300">{status}</p>
+            {isVideo && remoteStream && !hasRemoteVideo ? (
+              <p className="max-w-xs text-center text-xs text-zinc-400">Connected, but the other person’s camera is off or not sending video yet.</p>
+            ) : null}
           </div>
         ) : null}
 
-        {!isVideo ? (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-            <Avatar name={peerName} size={120} />
-            <p className="text-xl font-semibold text-zinc-100">{peerName}</p>
-            <p className="text-sm text-amber-400">{status}</p>
-          </div>
-        ) : null}
-
-        {isVideo && remoteStream ? (
-          <span className="absolute left-4 top-4 rounded-lg bg-black/50 px-3 py-1.5 text-sm text-zinc-100 backdrop-blur">
+        {isVideo && hasRemoteVideo ? (
+          <span className="absolute left-4 top-4 rounded-xl border border-white/10 bg-black/45 px-3 py-1.5 text-sm text-zinc-100 backdrop-blur">
             {peerName}
           </span>
         ) : null}
 
         {isVideo ? (
-          <video
-            ref={localRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute bottom-4 right-4 h-32 w-24 rounded-xl border border-zinc-700 object-cover shadow-xl sm:h-40 sm:w-28"
-          />
+          <div className="absolute bottom-4 right-4 h-32 w-24 overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900 shadow-xl sm:h-40 sm:w-28">
+            <video
+              ref={localRef}
+              autoPlay
+              playsInline
+              muted
+              className={`h-full w-full object-cover ${localStream?.getVideoTracks?.().some((t) => t.enabled && t.readyState === 'live') ? '' : 'hidden'}`}
+            />
+            {!localStream?.getVideoTracks?.().some((t) => t.enabled && t.readyState === 'live') ? (
+              <div className="flex h-full items-center justify-center"><Avatar name="You" size={42} /></div>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
-      <div className="flex items-center justify-center gap-4 bg-zinc-900/80 py-5">
+      <div className="flex items-center justify-center gap-4 border-t border-zinc-800/80 bg-zinc-950/95 py-5">
         <button
           type="button"
           onClick={onToggleMute}
           title={isMuted ? 'Unmute' : 'Mute'}
           className={`flex h-12 w-12 items-center justify-center rounded-full transition ${
-            isMuted
-              ? 'bg-zinc-700 text-zinc-100'
-              : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+            isMuted ? 'bg-amber-500/20 text-amber-300' : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
           }`}
         >
           {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
@@ -105,9 +115,7 @@ export default function CallModal({
             onClick={onToggleCamera}
             title={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
             className={`flex h-12 w-12 items-center justify-center rounded-full transition ${
-              isCameraOff
-                ? 'bg-zinc-700 text-zinc-100'
-                : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+              isCameraOff ? 'bg-amber-500/20 text-amber-300' : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
             }`}
           >
             {isCameraOff ? <VideoOff size={20} /> : <Video size={20} />}

@@ -10,7 +10,7 @@ import morgan from 'morgan';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { Server } from 'socket.io';
-import { authRateLimit, apiRateLimit } from './middleware/rateLimit.js';
+import { apiRateLimit } from './middleware/rateLimit.js';
 
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -27,6 +27,8 @@ import noteRoutes from './routes/noteRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import supportRoutes from './routes/supportRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
+import feedRoutes from './routes/feedRoutes.js';
 import {
   getSystemSettings,
   isMaintenanceActive,
@@ -141,6 +143,10 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Broad abuse protection for every API route (auth has an additional, tighter
+// limit below). 300 requests/minute per IP is well above normal app usage.
+app.use('/api', apiRateLimit);
+
 // Static files (uploaded media)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -150,8 +156,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'Wchat', uptime: process.uptime() });
 });
 
-// Rate-limited auth endpoints.
-app.use('/api/auth', authRateLimit, authRoutes);
+// Auth routes. Sensitive endpoints (login, registration, password reset) apply
+// the tighter authRateLimit inside authRoutes.js; ordinary signed-in endpoints
+// such as /auth/me and preferences only use the global API limit.
+app.use('/api/auth', authRoutes);
 
 app.get('/api/options', (req, res) => {
   res.json({ categories: CATEGORIES, features: FEATURES });
@@ -237,6 +245,8 @@ app.use('/api/music', musicRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/feeds', feedRoutes);
 
 // 404 for unknown API routes
 app.use('/api', (req, res) => {
@@ -336,13 +346,22 @@ const untrackSocket = (userId, socketId) => {
 };
 
 // Socket authentication
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth && socket.handshake.auth.token;
     if (!token) {
       return next(new Error('Authentication error'));
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id)
+      .select('_id isBlocked tokenVersion')
+      .lean();
+    if (!user || user.isBlocked) {
+      return next(new Error('Authentication error'));
+    }
+    if ((Number(decoded.tv) || 0) !== (Number(user.tokenVersion) || 0)) {
+      return next(new Error('Authentication error'));
+    }
     socket.userId = decoded.id;
     return next();
   } catch (error) {
@@ -510,6 +529,11 @@ io.on('connection', (socket) => {
     io.to(`user:${to}`).emit('call accepted', { from: from || userId, signalData });
   });
 
+  socket.on('ice-candidate', ({ to, from, candidate } = {}) => {
+    if (!to || !candidate) return;
+    io.to(`user:${to}`).emit('ice-candidate', { from: from || userId, candidate });
+  });
+
   socket.on('reject call', ({ to, from } = {}) => {
     if (!to) return;
     io.to(`user:${to}`).emit('call rejected', { from: from || userId });
@@ -622,8 +646,37 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 // -------------------- Start --------------------
+const WEAK_JWT_SECRETS = new Set([
+  'chattinga_dev_secret_change_in_production',
+  'secret',
+  'changeme',
+  'your-secret-key',
+]);
+
+const validateEnvironment = () => {
+  const secret = String(process.env.JWT_SECRET || '');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const weak = !secret || secret.length < 32 || WEAK_JWT_SECRETS.has(secret);
+
+  if (weak && isProduction) {
+    console.error(
+      'FATAL: JWT_SECRET is missing, too short (<32 chars) or still a placeholder. ' +
+        'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+    process.exit(1);
+  }
+
+  if (weak) {
+    console.warn(
+      '[security] JWT_SECRET is weak or missing (development only). Set a 32+ character ' +
+        'secret before deploying to production.'
+    );
+  }
+};
+
 const startServer = async () => {
   try {
+    validateEnvironment();
     await connectDB();
 
     // Seed the default music catalog (idempotent).

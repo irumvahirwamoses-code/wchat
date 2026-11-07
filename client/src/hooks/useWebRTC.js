@@ -3,35 +3,32 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { useSocket } from '../context/SocketContext'
 
-const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+]
 
-/** Resolves once ICE gathering finished (or after a timeout). */
-function waitForIceGathering(pc, timeout = 4000) {
-  return new Promise((resolve) => {
-    if (pc.iceGatheringState === 'complete') {
-      resolve()
-      return
-    }
-    let settled = false
-    const finish = () => {
-      if (settled) return
-      settled = true
-      pc.removeEventListener('icegatheringstatechange', onChange)
-      resolve()
-    }
-    const onChange = () => {
-      if (pc.iceGatheringState === 'complete') finish()
-    }
-    pc.addEventListener('icegatheringstatechange', onChange)
-    setTimeout(finish, timeout)
+function stopStream(stream) {
+  stream?.getTracks?.().forEach((track) => {
+    try { track.stop() } catch {}
   })
 }
 
-function getMedia(callType) {
-  return navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: callType === 'video',
-  })
+async function getMedia(callType) {
+  const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+  const video = callType === 'video'
+    ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+    : false
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio, video })
+  } catch (error) {
+    if (callType === 'video') {
+      const audioOnly = await navigator.mediaDevices.getUserMedia({ audio, video: false })
+      audioOnly.__wchatVideoUnavailable = true
+      return audioOnly
+    }
+    throw error
+  }
 }
 
 /**
@@ -53,38 +50,87 @@ export default function useWebRTC() {
 
   const pcRef = useRef(null)
   const localStreamRef = useRef(null)
+  const remoteStreamRef = useRef(null)
   const peerRef = useRef(null)
+  const pendingCandidatesRef = useRef([])
   const callStateRef = useRef('idle')
 
   useEffect(() => {
     callStateRef.current = callState
   }, [callState])
 
-  const createPeerConnection = useCallback(() => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
-    pc.ontrack = (event) => {
-      const [stream] = event.streams
-      if (stream) setRemoteStream(stream)
-    }
-    pcRef.current = pc
-    return pc
+  const replaceRemoteStream = useCallback((next) => {
+    remoteStreamRef.current = next || null
+    setRemoteStream(next || null)
   }, [])
 
-  const cleanup = useCallback(() => {
+  const createPeerConnection = useCallback(() => {
+    if (pcRef.current) {
+      try { pcRef.current.close() } catch {}
+      pcRef.current = null
+    }
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    const remote = new MediaStream()
+    replaceRemoteStream(remote)
+
+    pc.ontrack = (event) => {
+      const target = remoteStreamRef.current || new MediaStream()
+      if (!remoteStreamRef.current) replaceRemoteStream(target)
+      if (event.streams?.[0]) {
+        event.streams[0].getTracks().forEach((track) => {
+          if (!target.getTracks().some((t) => t.id === track.id)) target.addTrack(track)
+        })
+      } else if (event.track && !target.getTracks().some((t) => t.id === event.track.id)) {
+        target.addTrack(event.track)
+      }
+      replaceRemoteStream(target)
+    }
+
+    pc.onicecandidate = (event) => {
+      const peerId = peerRef.current?._id
+      if (event.candidate && peerId && socket?.connected) {
+        socket.emit('ice-candidate', { to: peerId, from: user?._id, candidate: event.candidate })
+      }
+    }
+
+    pc.oniceconnectionstatechange = () => {
+      if (['failed', 'disconnected'].includes(pc.iceConnectionState) && callStateRef.current === 'active') {
+        // Keep the call alive briefly for transient disconnects; UI still shows connected state.
+      }
+      if (pc.iceConnectionState === 'failed') {
+        try { pc.restartIce?.() } catch {}
+      }
+    }
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' && callStateRef.current !== 'idle') {
+        toast.error('Call connection failed')
+      }
+    }
+
+    pcRef.current = pc
+    return pc
+  }, [replaceRemoteStream, socket, user?._id])
+
+  const cleanup = useCallback((notifyPeer = false) => {
+    const peerId = peerRef.current?._id
+    if (notifyPeer && socket?.connected && peerId) {
+      socket.emit('end call', { to: peerId, from: user?._id })
+    }
     if (pcRef.current) {
       try {
         pcRef.current.ontrack = null
         pcRef.current.onicecandidate = null
+        pcRef.current.oniceconnectionstatechange = null
+        pcRef.current.onconnectionstatechange = null
         pcRef.current.close()
-      } catch {
-        /* already closed */
-      }
+      } catch {}
       pcRef.current = null
     }
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop())
-      localStreamRef.current = null
-    }
+    stopStream(localStreamRef.current)
+    localStreamRef.current = null
+    pendingCandidatesRef.current = []
+    remoteStreamRef.current = null
     peerRef.current = null
     setLocalStream(null)
     setRemoteStream(null)
@@ -93,7 +139,7 @@ export default function useWebRTC() {
     setIsMuted(false)
     setIsCameraOff(false)
     setCallState('idle')
-  }, [])
+  }, [socket, user?._id])
 
   /* ------------------------------------------------------------- signalling */
   useEffect(() => {
@@ -114,9 +160,13 @@ export default function useWebRTC() {
 
     const handleCallAccepted = async ({ signalData }) => {
       const pc = pcRef.current
-      if (!pc) return
+      if (!pc || !signalData) return
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(signalData))
+        while (pendingCandidatesRef.current.length) {
+          const candidate = pendingCandidatesRef.current.shift()
+          try { await pc.addIceCandidate(new RTCIceCandidate(candidate)) } catch {}
+        }
         setCallState('active')
       } catch {
         toast.error('Failed to establish the call')
@@ -134,16 +184,29 @@ export default function useWebRTC() {
       cleanup()
     }
 
+    const handleIceCandidate = async ({ candidate }) => {
+      if (!candidate) return
+      const pc = pcRef.current
+      if (!pc) return
+      if (!pc.remoteDescription || !pc.remoteDescription.type) {
+        pendingCandidatesRef.current.push(candidate)
+        return
+      }
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)) } catch {}
+    }
+
     socket.on('incoming call', handleIncomingCall)
     socket.on('call accepted', handleCallAccepted)
     socket.on('call rejected', handleCallRejected)
     socket.on('call ended', handleCallEnded)
+    socket.on('ice-candidate', handleIceCandidate)
 
     return () => {
       socket.off('incoming call', handleIncomingCall)
       socket.off('call accepted', handleCallAccepted)
       socket.off('call rejected', handleCallRejected)
       socket.off('call ended', handleCallEnded)
+      socket.off('ice-candidate', handleIceCandidate)
     }
   }, [socket, cleanup])
 
@@ -151,37 +214,46 @@ export default function useWebRTC() {
   const startCall = useCallback(
     async (target, type = 'video') => {
       if (!socket || !user || !target?._id) return
+      if (callStateRef.current !== 'idle') return
       const name =
         `${target.firstName || ''} ${target.lastName || ''}`.trim() ||
         target.username ||
         'User'
+      let stream
       try {
         setCallType(type)
         const info = { _id: target._id, name }
         peerRef.current = info
         setPeer(info)
+        setIsCameraOff(false)
+        setIsMuted(false)
 
-        const stream = await getMedia(type)
+        stream = await getMedia(type)
         localStreamRef.current = stream
         setLocalStream(stream)
+        if (stream.__wchatVideoUnavailable) {
+          toast.error('Camera unavailable; starting with audio only')
+          setIsCameraOff(true)
+        }
 
         const pc = createPeerConnection()
         stream.getTracks().forEach((track) => pc.addTrack(track, stream))
 
-        const offer = await pc.createOffer()
+        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: type === 'video' })
         await pc.setLocalDescription(offer)
-        await waitForIceGathering(pc)
 
         socket.emit('callUser', {
           to: target._id,
           from: user._id,
           callType: type,
-          signalData: pc.localDescription,
+          signalData: pc.localDescription?.toJSON ? pc.localDescription.toJSON() : pc.localDescription,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
         })
         setCallState('outgoing')
-      } catch {
-        toast.error('Could not start the call — check your camera/microphone')
+      } catch (error) {
+        stopStream(stream)
+        console.error('startCall failed', error)
+        toast.error('Could not start the call — check camera/microphone permissions')
         cleanup()
       }
     },
@@ -190,43 +262,60 @@ export default function useWebRTC() {
 
   const acceptCall = useCallback(async () => {
     if (!socket || !incomingCall) return
+    let stream
     try {
-      const type = incomingCall.callType
-      const stream = await getMedia(type)
+      const type = incomingCall.callType || 'video'
+      setCallType(type)
+      peerRef.current = { _id: incomingCall.from, name: incomingCall.name || 'Unknown' }
+      setPeer(peerRef.current)
+      setIsMuted(false)
+      setIsCameraOff(false)
+
+      stream = await getMedia(type)
       localStreamRef.current = stream
       setLocalStream(stream)
+      if (stream.__wchatVideoUnavailable) {
+        toast.error('Camera unavailable; joining with audio only')
+        setIsCameraOff(true)
+      }
 
       const pc = createPeerConnection()
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
 
       await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.signalData))
+      while (pendingCandidatesRef.current.length) {
+        const candidate = pendingCandidatesRef.current.shift()
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)) } catch {}
+      }
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
-      await waitForIceGathering(pc)
 
-      socket.emit('answer call', { to: incomingCall.from, signalData: pc.localDescription })
+      socket.emit('answer call', {
+        to: incomingCall.from,
+        from: user?._id,
+        signalData: pc.localDescription?.toJSON ? pc.localDescription.toJSON() : pc.localDescription,
+      })
       setIncomingCall(null)
       setCallState('active')
-    } catch {
-      toast.error('Could not join the call')
-      socket.emit('reject call', { to: incomingCall.from })
+    } catch (error) {
+      stopStream(stream)
+      console.error('acceptCall failed', error)
+      toast.error('Could not join the call — check camera/microphone permissions')
+      socket.emit('reject call', { to: incomingCall.from, from: user?._id })
       cleanup()
     }
-  }, [socket, incomingCall, createPeerConnection, cleanup])
+  }, [socket, incomingCall, createPeerConnection, cleanup, user?._id])
 
   const rejectCall = useCallback(() => {
     if (socket && incomingCall?.from) {
-      socket.emit('reject call', { to: incomingCall.from })
+      socket.emit('reject call', { to: incomingCall.from, from: user?._id })
     }
     cleanup()
-  }, [socket, incomingCall, cleanup])
+  }, [socket, incomingCall, cleanup, user?._id])
 
   const endCall = useCallback(() => {
-    if (socket && peerRef.current?._id) {
-      socket.emit('end call', { to: peerRef.current._id })
-    }
-    cleanup()
-  }, [socket, cleanup])
+    cleanup(true)
+  }, [cleanup])
 
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current

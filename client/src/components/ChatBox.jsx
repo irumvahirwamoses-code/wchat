@@ -39,15 +39,14 @@ import {
 
 function EmptyState() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-400/10 text-amber-400">
-        <MessageCircle size={38} strokeWidth={1.8} />
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
+      <div className="grid h-24 w-24 place-items-center rounded-[2rem] wchat-gradient text-white wchat-glow">
+        <MessageCircle size={40} strokeWidth={1.8} />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-zinc-100">Welcome to Wchat</h2>
-        <p className="mt-1 max-w-sm text-sm text-zinc-500">
-          Select a conversation on the left, search for someone new, or create a
-          Circle to start chatting in real time.
+        <h2 className="text-2xl font-bold text-zinc-100">Welcome to Wchat</h2>
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-500">
+          Select a conversation, search for someone new, or create a Circle to start chatting in real time.
         </p>
       </div>
     </div>
@@ -58,8 +57,8 @@ function EmptyState() {
 function PinnedBar({ pins, onJump }) {
   if (!pins?.length) return null
   return (
-    <div className="no-scrollbar flex items-stretch gap-2 overflow-x-auto border-b border-zinc-800/80 bg-zinc-900/40 px-3 py-2">
-      <span className="flex items-center gap-1 self-center text-[11px] font-semibold text-amber-400">
+    <div className="no-scrollbar flex items-stretch gap-2 overflow-x-auto border-b border-zinc-800/70 bg-zinc-900/35 px-3 py-2 backdrop-blur-sm">
+      <span className="flex items-center gap-1 self-center text-[11px] font-semibold text-wchat">
         <Pin size={12} /> Pinned
       </span>
       {pins.map((pin) => (
@@ -67,9 +66,9 @@ function PinnedBar({ pins, onJump }) {
           key={pin._id || getId(pin.message)}
           type="button"
           onClick={() => onJump(getId(pin.message))}
-          className="flex min-w-[150px] max-w-[220px] shrink-0 flex-col rounded-lg border border-zinc-800 bg-zinc-950/60 px-2.5 py-1.5 text-left transition hover:border-amber-400/50"
+          className="flex min-w-[150px] max-w-[220px] shrink-0 flex-col rounded-xl border border-zinc-800/80 bg-zinc-950/55 px-2.5 py-1.5 text-left transition hover:border-wchat/35 hover:bg-zinc-900/70"
         >
-          <span className="truncate text-[10px] font-semibold text-amber-400">
+          <span className="truncate text-[10px] font-semibold text-wchat">
             {`${pin.message?.sender?.firstName || ''} ${pin.message?.sender?.lastName || ''}`.trim() ||
               pin.message?.sender?.username ||
               'Message'}
