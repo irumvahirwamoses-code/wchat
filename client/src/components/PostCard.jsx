@@ -143,8 +143,9 @@ export default function PostCard({
   const navigate = useNavigate()
   const isExternal = Boolean(post?.isExternal);
   const impressionRef = useImpression(isExternal ? null : post._id, { surface, position })
-  const track = (eventType, extra = {}) =>
+  const track = (eventType, extra = {}) => {
     if (!isExternal) trackFeedEvent({ itemId: post._id, eventType, surface, position, ...extra })
+  }
   const author = post.author || {}
   const circle = post.circle || null
   const collaborators = post.collaborators || []
