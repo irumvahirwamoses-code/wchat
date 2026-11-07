@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import {
   Archive,
   Bookmark,
@@ -34,7 +34,7 @@ import { formatTime } from '../utils/api'
 
 /** Renders the caption with #hashtags / @mentions highlighted. */
 function Caption({ text, max = 400 }) {
-  const short = text.length > max ? `${text.slice(0, max)}…` : text
+  const short = text.length > max ? `${text.slice(0, max)}â€¦` : text
   const parts = short.split(/([#@][\p{L}\p{N}_]+)/gu)
   return (
     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-300">
@@ -63,7 +63,7 @@ function Carousel({ items }) {
   if (total === 1) {
     const only = items[0]
     return only.type === 'video' ? (
-      <video autoPlay muted playsInline loop src={getFileUrl(only.url)} className="max-h-[80vh] w-full bg-black" / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
+      <video autoPlay muted playsInline loop src={getFileUrl(only.url)} className="max-h-[80vh] w-full bg-black" onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}} />
     ) : (
       <img
         src={getFileUrl(only.url)}
@@ -78,7 +78,7 @@ function Carousel({ items }) {
   return (
     <div className="relative bg-black">
       {item.type === 'video' ? (
-        <video key={item.url} autoPlay muted playsInline loop src={getFileUrl(item.url)} className="max-h-[80vh] w-full" / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
+        <video key={item.url} autoPlay muted playsInline loop src={getFileUrl(item.url)} className="max-h-[80vh] w-full" onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}} />
       ) : (
           <img
             key={item.url}
@@ -158,7 +158,7 @@ export default function PostCard({
     if (author?._id) navigate(`/user/${author._id}`)
   }
 
-  // Sharing & reuse — the author decides what others may do with their content.
+  // Sharing & reuse â€” the author decides what others may do with their content.
   const authorPrefs = author?.preferences || {}
   const canDownload = isMine || authorPrefs.allowDownload !== false
   const canShare = isMine || authorPrefs.allowShareToStories !== false
@@ -289,7 +289,7 @@ export default function PostCard({
     loadComments()
   }, [post._id])
 
-  const addComment = async () => {
+  const addComment = async () => { if(isExternal){ if(!replyText.trim()) return; setComments(prev=>[...prev,{_id:String(Date.now()),author:user,text:replyText.trim(),createdAt:new Date().toISOString()}]); setReplyText(''); setReplyingTo(null); return; }
     if (!replyText.trim()) return
     setSendingReply(true)
     try {
@@ -397,7 +397,7 @@ export default function PostCard({
           <p className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
             {authorName}
             {canEdit && !isMine ? (
-              <span className="text-xs text-amber-400" title="Co-author">· Collab</span>
+              <span className="text-xs text-amber-400" title="Co-author">Â· Collab</span>
             ) : null}
             <span className="text-xs font-normal text-zinc-500">
               {formatHandle(author.username)}
@@ -407,40 +407,40 @@ export default function PostCard({
             <span>{formatTime(post.createdAt)}</span>
             {circle ? (
               <>
-                <span>·</span>
+                <span>Â·</span>
                 <span className="font-medium text-zinc-400">{circle.chatName}</span>
               </>
             ) : null}
             {post.location ? (
               <>
-                <span>·</span>
+                <span>Â·</span>
                 <MapPin size={11} className="inline" />
                 <span>{post.location}</span>
               </>
             ) : null}
             {pinned ? (
               <>
-                <span>·</span>
+                <span>Â·</span>
                 <Pin size={11} className="inline text-amber-300" />
               </>
             ) : null}
             {archived ? (
               <>
-                <span>·</span>
+                <span>Â·</span>
                 <Archive size={11} className="inline text-zinc-400" />
                 <span className="text-zinc-500">Archived</span>
               </>
             ) : null}
             {post.audio?.url ? (
               <>
-                <span>·</span>
+                <span>Â·</span>
                 <Music2 size={11} className="inline text-pink-400" />
               </>
             ) : null}
           </p>
           {post.audio?.title && (
             <p className="text-[10px] text-zinc-500 truncate">
-              🎵 {post.audio.title}{post.audio.artist ? ` — ${post.audio.artist}` : ''}
+              ðŸŽµ {post.audio.title}{post.audio.artist ? ` â€” ${post.audio.artist}` : ''}
             </p>
           )}
         </div>
@@ -528,7 +528,7 @@ export default function PostCard({
       <footer className="flex items-center gap-4 border-t border-zinc-800/50 px-4 py-3">
         <button
           type="button"
-          onClick={isExternal?undefined:spark}
+          onClick={async()=>{ if(isExternal){ const next=!sparked; setSparked(next); setSparks(n=>next?n+1:Math.max(0,n-1)); return; } await spark(); }}
           disabled={busy}
           className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold transition ${
             sparked ? 'bg-wchat/10 text-wchat' : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200'
@@ -569,7 +569,7 @@ export default function PostCard({
         ) : null}
         <button
           type="button"
-          onClick={isExternal?undefined:toggleSave}
+          onClick={async()=>{ if(isExternal){ const next=!saved; setSaved(next); toast.success(next?'Saved':'Removed'); return; } await toggleSave(); }}
           title={saved ? 'Remove from saved' : 'Save'}
           className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold transition ${
             saved ? 'bg-wchat/10 text-wchat' : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200'
@@ -698,7 +698,7 @@ export default function PostCard({
                         <input
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Write a reply…"
+                          placeholder="Write a replyâ€¦"
                           className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100 placeholder-zinc-500 outline-none focus:border-amber-400/60"
                         />
                         <button
@@ -728,7 +728,7 @@ export default function PostCard({
               <input
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder={replyingTo ? 'Write a reply…' : 'Add a comment…'}
+                placeholder={replyingTo ? 'Write a replyâ€¦' : 'Add a commentâ€¦'}
                 className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-amber-400/60"
               />
               {replyingTo ? (
@@ -777,7 +777,7 @@ export default function PostCard({
             />
             {editedItems.length > 0 ? (
               <div className="mb-3">
-                <p className="text-xs text-zinc-400 mb-2">Media — tap × to remove</p>
+                <p className="text-xs text-zinc-400 mb-2">Media â€” tap Ã— to remove</p>
                 <div className="flex flex-wrap gap-2">
                   {editedItems.map((item, idx) => (
                     <div key={`${item.url}-${idx}`} className="relative">
@@ -786,7 +786,7 @@ export default function PostCard({
                           src={getFileUrl(item.url)}
                           className="h-16 w-16 rounded-lg object-cover bg-black"
                           muted
-                        / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
+                         />
                       ) : (
                         <img
                           src={getFileUrl(item.url)}
@@ -836,7 +836,7 @@ export default function PostCard({
             <input
               value={sendToUser}
               onChange={(e) => setSendToUser(e.target.value)}
-              placeholder="Search users…"
+              placeholder="Search usersâ€¦"
               className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 mb-3 outline-none focus:border-amber-400/60"
             />
             {sendUsers.length > 0 ? (
@@ -891,3 +891,8 @@ export default function PostCard({
     </article>
   )
 }
+
+
+
+
+

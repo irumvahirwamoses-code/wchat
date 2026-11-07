@@ -33,6 +33,10 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const [firstLoad, setFirstLoad] = useState(true)
   const [tab, setTab] = useState('for_you')
   const tabRef = useRef(tab)
+  const scrollRef = useRef(null)
+  const pageRef = useRef(page)
+  const loadingRef = useRef(loading)
+  const hasMoreRef = useRef(hasMore)
   // Rolling deploy safety: if the API does not have /feeds/home yet (older
   // server during a client-first deploy), keep Home working on /posts/feed.
   const legacyFeedRef = useRef(false)
@@ -65,6 +69,8 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   }, [])
 
   const loadPage = useCallback(async (target) => {
+    if (target > 1 && !hasMore) return
+    if (loading) return
     const requestedTab = tab
     setLoading(true)
     try {
@@ -83,7 +89,6 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
         }
       }
       if (requestedTab !== tabRef.current) return
-      // The server may force the chronological tab when personalisation is off.
       if (target === 1 && data.tab && data.tab !== requestedTab) {
         tabRef.current = data.tab
         setTab(data.tab)
@@ -91,8 +96,6 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
       const batch = data.posts || []
       setPosts((prev) => {
         if (target === 1) return batch
-        // Re-ranking can shift items between requests; never render a post
-        // twice when the next page overlaps the previous one.
         const seen = new Set(prev.map((post) => String(post._id)))
         return [...prev, ...batch.filter((post) => !seen.has(String(post._id)))]
       })
@@ -106,7 +109,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
         setFirstLoad(false)
       }
     }
-  }, [tab])
+  }, [tab, loading, hasMore])
 
   useEffect(() => {
     loadStories()
@@ -134,7 +137,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const visiblePosts = useMemo(() => filterHidden(posts, (p) => p.text), [posts])
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh">
+    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh" ref={scrollRef} onScroll={(e)=>{const el=e.currentTarget; if(!loadingRef.current && hasMoreRef.current && el.scrollTop+el.clientHeight>=el.scrollHeight-450) loadPage(pageRef.current);}}>
       <header className="sticky top-0 z-20 border-b border-zinc-800/70 wchat-glass">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div>
@@ -236,17 +239,9 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
               />
             ))}
 
-            {hasMore ? (
-              <button
-                type="button"
-                onClick={() => loadPage(page)}
-                disabled={loading}
-                className="mx-auto flex items-center gap-2 rounded-xl border border-zinc-800 px-4 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900 disabled:opacity-60"
-              >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-                Show more
-              </button>
-            ) : (
+            {loading ? (
+              <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-zinc-500" /></div>
+            ) : hasMore ? <div className="h-6" /> : (
               <p className="py-6 text-center text-xs text-zinc-500">You're all caught up ✨</p>
             )}
           </div>
