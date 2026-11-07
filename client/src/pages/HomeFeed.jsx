@@ -37,6 +37,8 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const pageRef = useRef(page)
   const loadingRef = useRef(loading)
   const hasMoreRef = useRef(hasMore)
+  const sentinelRef = useRef(null)
+  const prefetchingRef = useRef(false)
   // Rolling deploy safety: if the API does not have /feeds/home yet (older
   // server during a client-first deploy), keep Home working on /posts/feed.
   const legacyFeedRef = useRef(false)
@@ -141,7 +143,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   const visiblePosts = useMemo(() => filterHidden(posts, (p) => p.text), [posts])
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh" ref={scrollRef} onScroll={(e)=>{const el=e.currentTarget; if(!loadingRef.current && hasMoreRef.current && el.scrollTop+el.clientHeight>=el.scrollHeight-450) loadPage(pageRef.current);}}>
+    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh" ref={scrollRef} onScroll={(e)=>{const el=e.currentTarget; const threshold=Math.max(900, Math.floor(el.clientHeight*1.4)); if(!loadingRef.current && hasMoreRef.current && el.scrollTop+el.clientHeight>=el.scrollHeight-threshold) loadPage(pageRef.current);}}>
       <header className="sticky top-0 z-20 border-b border-zinc-800/70 wchat-glass">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div>
@@ -243,9 +245,12 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
               />
             ))}
 
+            {hasMore ? <div ref={sentinelRef} className="h-2 w-full" aria-hidden="true" /> : null}
             {loading ? (
-              <div className="flex justify-center py-4"><Loader2 size={18} className="animate-spin text-zinc-500" /></div>
-            ) : hasMore ? <div className="h-6" /> : (
+              <div className="flex items-center justify-center gap-2 py-2 text-[11px] text-zinc-500">
+                <Loader2 size={14} className="animate-spin" /> Loading more…
+              </div>
+            ) : hasMore ? <div className="h-10" /> : (
               <p className="py-6 text-center text-xs text-zinc-500">You're all caught up ✨</p>
             )}
           </div>

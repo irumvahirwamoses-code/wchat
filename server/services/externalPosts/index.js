@@ -99,7 +99,7 @@ function normalize(raw) {
 
 export async function fetchExternalPosts({ query, page = 1, perPage = 6 } = {}) {
   const q = (query && String(query).trim()) || DEFAULT_QUERIES[Math.floor(Math.random() * DEFAULT_QUERIES.length)];
-  const key = makeKey('ext-post-v2', q, page, perPage);
+  const key = makeKey('ext-post-v3', q, page, perPage);
   const cached = getCache(key, 15 * 60 * 1000);
   if (cached) return cached;
 
