@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BarChart3, Bookmark, Grid3x3, Link2, Loader2, Lock, Settings } from 'lucide-react'
 import api from '../config/api'
@@ -150,22 +150,27 @@ export default function ProfilePage({ onEdit, onOpenProfile, embedded = false })
   const content = (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
-          <header className="border-b border-zinc-800/80 px-4 py-5">
-            <div className="mx-auto mb-3 max-w-2xl">
+          <header className="border-b border-zinc-200/70 bg-white/70 px-4 py-5 backdrop-blur-xl dark:border-zinc-800/70 dark:bg-zinc-950/60">
+            <div className="mx-auto mb-4 max-w-2xl">
               <button
                 type="button"
                 onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-100"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-100"
               >
                 <ArrowLeft size={13} /> Back
               </button>
             </div>
             <div className="mx-auto flex max-w-2xl items-start gap-4">
-              <Avatar
-                src={profile?.profilePicture}
-                name={`${profile?.firstName || ''} ${profile?.lastName || ''}`}
-                size={84}
-              />
+              <div className="rounded-full bg-gradient-to-tr from-wchat via-wchat-400 to-fuchsia-400/60 p-[3px] wchat-glow">
+                <div className="rounded-full bg-white p-[3px] dark:bg-zinc-950">
+                  <Avatar
+                    src={profile?.profilePicture}
+                    frame={profile?.profilePictureFrame}
+                    name={`${profile?.firstName || ''} ${profile?.lastName || ''}`}
+                    size={96}
+                  />
+                </div>
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0">
@@ -298,7 +303,7 @@ export default function ProfilePage({ onEdit, onOpenProfile, embedded = false })
             </div>
           </header>
 
-          <nav className="flex border-b border-zinc-800/80">
+          <nav className="flex border-b border-zinc-200/70 bg-white/60 px-1 backdrop-blur-sm dark:border-zinc-800/70 dark:bg-zinc-950/40">
             {TABS.map((t) => {
               const Icon = t.icon
               const on = tab === t.id
@@ -309,7 +314,7 @@ export default function ProfilePage({ onEdit, onOpenProfile, embedded = false })
                   type="button"
                   onClick={() => setTab(t.id)}
                   className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold transition ${
-                    on ? 'border-b-2 border-wchat text-wchat' : 'text-zinc-500 hover:text-zinc-300'
+                    on ? 'border-b-2 border-[color:var(--wchat-primary)] text-[color:var(--wchat-primary)]' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
                   }`}
                 >
                   <Icon size={14} /> {t.label}
@@ -438,3 +443,4 @@ export default function ProfilePage({ onEdit, onOpenProfile, embedded = false })
     </div>
   )
 }
+

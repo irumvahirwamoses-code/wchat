@@ -86,6 +86,16 @@ const userSchema = new mongoose.Schema(
         return generateGenderAvatar(this.username || this.firstName || 'wchat', this.gender);
       },
     },
+    /**
+     * Non-destructive display frame for profilePicture. The original image file
+     * is kept; Avatar uses these values to position/zoom the visible area so
+     * users can show the right part (e.g. face) without cropping the source.
+     */
+    profilePictureFrame: {
+      zoom: { type: Number, default: 1, min: 1, max: 4 },
+      x: { type: Number, default: 0, min: -100, max: 100 },
+      y: { type: Number, default: 0, min: -100, max: 100 },
+    },
     bio: {
       type: String,
       trim: true,
@@ -140,6 +150,15 @@ const userSchema = new mongoose.Schema(
     isBlocked: { type: Boolean, default: false, index: true },
     blockedReason: { type: String, trim: true, maxlength: 300, default: '' },
     blockedAt: { type: Date, default: null },
+    /** Brute-force protection: consecutive failed sign-ins. */
+    failedLoginAttempts: { type: Number, default: 0, min: 0 },
+    /** When set, sign-in is refused until this time passes. */
+    lockUntil: { type: Date, default: null },
+    /**
+     * Bumped when credentials are reset. Tokens carrying an older version are
+     * rejected, so a password reset signs out every other device.
+     */
+    tokenVersion: { type: Number, default: 0, min: 0 },
     /** Whether Wchat may suggest this profile to similar people. */
     showInSuggestions: { type: Boolean, default: true },
 
@@ -228,6 +247,8 @@ const userSchema = new mongoose.Schema(
       autoplayVideos: { type: Boolean, default: true },
       showReadReceipts: { type: Boolean, default: true },
       allowDmFromAnyone: { type: Boolean, default: true },
+      /** Let the home feed learn from behaviour. Off = chronological only. */
+      personalisedFeed: { type: Boolean, default: true },
       /** Upload originals instead of compressing (Settings → Data & storage). */
       highQualityUploads: { type: Boolean, default: true },
 

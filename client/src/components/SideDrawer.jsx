@@ -143,14 +143,14 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
                 setMenuOpen((v) => !v)
                 setSearchOpen(false)
               }}
-              className="rounded-full ring-2 ring-transparent transition hover:ring-amber-400/60"
+              className="rounded-full ring-2 ring-transparent transition hover:ring-wchat/40"
               title="My account"
             >
               <Avatar
                 src={user?.profilePicture}
+                frame={user?.profilePictureFrame}
                 name={`${user?.firstName || ''} ${user?.lastName || ''}`}
-                size={36}
-                online={onlineUsers.includes(user?._id)}
+                size={72}
               />
             </button>
 
@@ -274,14 +274,14 @@ export default function SideDrawer({ onOpenProfile, onOpenDiscovery, onNewGroup,
                           openChatWith(result)
                         }}
                         disabled={startingChat === result._id}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800 text-zinc-200 disabled:opacity-50 transition hover:bg-amber-400 hover:text-white"
+                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-700/80 bg-zinc-800/80 text-zinc-200 transition hover:border-wchat/40 hover:bg-wchat hover:text-white disabled:opacity-50"
                         title="Message"
                       >
                         <MessageCircle size={14} />
                       </button>
                     </div>
                     {startingChat === result._id && (
-                      <Loader2 size={16} className="animate-spin text-amber-400" />
+                      <Loader2 size={16} className="animate-spin text-wchat" />
                     )}
                   </div>
                 )
@@ -308,7 +308,7 @@ function MenuItem({ icon, label, onClick, badge = 0, danger = false }) {
       <span className="text-zinc-400">{icon}</span>
       <span className="flex-1">{label}</span>
       {badge > 0 ? (
-        <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-white">
+        <span className="rounded-full wchat-gradient px-1.5 py-0.5 text-[10px] font-bold text-white">
           {badge}
         </span>
       ) : null}

@@ -5,6 +5,18 @@ import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import CircleItem from '../models/CircleItem.js';
 import JoinRequest from '../models/JoinRequest.js';
+import Message from '../models/Message.js';
+import Story from '../models/Story.js';
+import Note from '../models/Note.js';
+import Collection from '../models/Collection.js';
+import Notification from '../models/Notification.js';
+import FeedEvent from '../models/FeedEvent.js';
+import UserInterestProfile from '../models/UserInterestProfile.js';
+import Report from '../models/Report.js';
+import Feedback from '../models/Feedback.js';
+import CircleDecision from '../models/CircleDecision.js';
+import CircleOps from '../models/CircleOps.js';
+import VerificationCode from '../models/VerificationCode.js';
 import { fileUrl } from '../middleware/uploadMiddleware.js';
 import { ensurePersonalCircle } from '../services/circles.js';
 import { notify } from '../services/notifications.js';
@@ -28,7 +40,7 @@ const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * date of birth are intentionally never exposed.
  */
 const PUBLIC_PROFILE_FIELDS =
-  'firstName lastName username profilePicture bio category links accountType isPrivate showInSuggestions interests skills isOnline lastSeen onboarding preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
+  'firstName lastName username profilePicture profilePictureFrame bio category links accountType isPrivate showInSuggestions interests skills isOnline lastSeen onboarding preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
 
 /**
  * GET /api/users/:id
@@ -64,7 +76,7 @@ export const searchUsers = async (req, res, next) => {
 
     const users = await User.find(query)
       .limit(20)
-      .select('firstName lastName username profilePicture isOnline lastSeen');
+      .select('firstName lastName username profilePicture profilePictureFrame isOnline lastSeen');
 
     return res.json(users);
   } catch (error) {
@@ -130,11 +142,22 @@ export const suggestUsernames = async (req, res, next) => {
   }
 };
 
-/** Multipart forms send booleans as strings — normalise them. */
-const parseBool = (value, fallback = false) => {
-  if (value === undefined || value === null || value === '') return fallback;
-  if (typeof value === 'boolean') return value;
-  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+const parseProfilePictureFrame = (value, fallback = null) => {
+  if (value === undefined) return undefined;
+  let raw = value;
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw); } catch { raw = null; }
+  }
+  if (!raw || typeof raw !== 'object') return fallback;
+  const clamp = (n, min, max, def) => {
+    const v = Number(n);
+    return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def;
+  };
+  return {
+    zoom: clamp(raw.zoom, 1, 4, 1),
+    x: clamp(raw.x, -100, 100, 0),
+    y: clamp(raw.y, -100, 100, 0),
+  };
 };
 
 /**
@@ -260,11 +283,20 @@ export const updateProfile = async (req, res, next) => {
 
     if (profilePicture !== undefined) {
       updates.profilePicture = String(profilePicture);
+      if (req.body.profilePictureFrame === undefined) {
+        updates.profilePictureFrame = { zoom: 1, x: 0, y: 0 };
+      }
     }
 
     if (req.file) {
       updates.profilePicture = fileUrl(req.file);
+      if (req.body.profilePictureFrame === undefined) {
+        updates.profilePictureFrame = { zoom: 1, x: 0, y: 0 };
+      }
     }
+
+    const frame = parseProfilePictureFrame(req.body.profilePictureFrame);
+    if (frame !== undefined) updates.profilePictureFrame = frame;
 
     if (Object.keys(updates).length === 0) {
       return res.json(req.user);
@@ -353,7 +385,7 @@ export const getUserSocial = async (req, res, next) => {
     const user = await User.findById(req.params.id).select('followers following');
     if (!user) return res.status(404).json({ message: 'Profile not found' });
 
-    const listFields = 'firstName lastName username profilePicture category isOnline lastSeen';
+    const listFields = 'firstName lastName username profilePicture profilePictureFrame category isOnline lastSeen';
 
     const [followers, following, me] = await Promise.all([
       User.find({ _id: { $in: user.followers || [] } }).select(listFields).limit(200),
@@ -727,6 +759,7 @@ export const joinCircle = async (req, res, next) => {
             lastName: user.lastName,
             username: user.username,
             profilePicture: user.profilePicture,
+            profilePictureFrame: user.profilePictureFrame,
           },
         });
       }
@@ -856,6 +889,304 @@ export const completeOnboarding = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/users/export
+ * Download everything tied to the signed-in account as JSON (GDPR-style).
+ */
+export const exportAccountData = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const MESSAGE_LIMIT = 10000;
+
+    const [user, posts, comments, stories, notes, collections, circleItems, chats, profile, feedback, reports] =
+      await Promise.all([
+        User.findById(userId).lean(),
+        Post.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        Comment.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        Story.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        Note.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        Collection.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        CircleItem.find({ author: userId }).sort({ createdAt: 1 }).lean(),
+        Chat.find({ users: userId })
+          .select('chatName isGroupChat circleType ownerUser groupAdmin users createdAt')
+          .lean(),
+        UserInterestProfile.findOne({ user: userId }).lean(),
+        Feedback.find({ user: userId }).sort({ createdAt: 1 }).lean(),
+        Report.find({ reporter: userId }).sort({ createdAt: 1 }).lean(),
+      ]);
+
+    const messageCount = await Message.countDocuments({ sender: userId });
+    const messages = await Message.find({ sender: userId })
+      .sort({ createdAt: 1 })
+      .limit(MESSAGE_LIMIT)
+      .lean();
+
+    const account = user || {};
+    delete account.password;
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      formatVersion: 1,
+      account,
+      posts,
+      comments,
+      stories,
+      notes,
+      collections,
+      circleItems,
+      chats,
+      messages,
+      messagesTruncated: messageCount > MESSAGE_LIMIT,
+      messageCount,
+      feedProfile: profile || null,
+      feedback,
+      reportsFiled: reports,
+    };
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `wchat-export-${user?.username || 'account'}-${stamp}.json`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.json(payload);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/**
+ * DELETE /api/users/account
+ * Permanently delete the signed-in account and its content. A password is
+ * required so a stolen session cannot erase the account on its own.
+ */
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const password = String(req.body.password || '');
+    if (!password) {
+      return res.status(400).json({ message: 'Enter your password to delete your account' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (!(await user.matchPassword(password))) {
+      return res.status(401).json({ message: 'Your password is incorrect' });
+    }
+
+    const userId = user._id;
+    const userIdStr = String(userId);
+
+    const [postIds, commentIds, commentPostIds, authoredItems, chats] = await Promise.all([
+      Post.find({ author: userId }).distinct('_id'),
+      Comment.find({ author: userId }).distinct('_id'),
+      Comment.find({ author: userId }).distinct('post'),
+      CircleItem.find({ author: userId }).distinct('_id'),
+      Chat.find({ users: userId })
+        .select('_id isGroupChat circleType ownerUser groupAdmin users')
+        .lean(),
+    ]);
+
+    // Chats that only exist for this account: personal Circles and 1:1 DMs.
+    const removedChatIds = chats
+      .filter((chat) => {
+        const owner = chat.ownerUser ? String(chat.ownerUser) : '';
+        return owner === userIdStr || !chat.isGroupChat;
+      })
+      .map((chat) => chat._id);
+    const removedChatIdStrings = removedChatIds.map(String);
+
+    // Group Circles survive; the member is removed (and ownership transferred).
+    const keptChats = chats.filter(
+      (chat) => !removedChatIdStrings.includes(String(chat._id))
+    );
+    for (const chat of keptChats) {
+      const others = (chat.users || [])
+        .map(String)
+        .filter((memberId) => memberId !== userIdStr);
+
+      if (others.length === 0) {
+        removedChatIds.push(chat._id);
+        removedChatIdStrings.push(String(chat._id));
+        continue;
+      }
+
+      const update = {
+        $pull: {
+          users: userId,
+          memberRoles: { user: userId },
+          pinnedMessages: { user: userId },
+        },
+      };
+      if (String(chat.groupAdmin || '') === userIdStr) {
+        update.$set = { groupAdmin: others[0] };
+      }
+      await Chat.updateOne({ _id: chat._id }, update);
+    }
+
+    if (removedChatIds.length) {
+      await Promise.all([
+        Chat.deleteMany({ _id: { $in: removedChatIds } }),
+        Message.deleteMany({ chat: { $in: removedChatIds } }),
+        JoinRequest.deleteMany({ chat: { $in: removedChatIds } }),
+        CircleItem.deleteMany({ chat: { $in: removedChatIds } }),
+        CircleDecision.deleteMany({ chat: { $in: removedChatIds } }),
+        CircleOps.deleteMany({ chat: { $in: removedChatIds } }),
+        Notification.deleteMany({ circle: { $in: removedChatIds } }),
+      ]);
+    }
+
+    // Content authored by the account.
+    await Promise.all([
+      Post.deleteMany({ author: userId }),
+      Comment.deleteMany({ author: userId }),
+      Story.deleteMany({ author: userId }),
+      Note.deleteMany({ author: userId }),
+      Collection.deleteMany({ author: userId }),
+      CircleItem.deleteMany({ author: userId }),
+      Feedback.deleteMany({ user: userId }),
+      Report.deleteMany({ $or: [{ reporter: userId }, { targetUser: userId }] }),
+      Notification.deleteMany({ $or: [{ recipient: userId }, { actor: userId }] }),
+      JoinRequest.deleteMany({ user: userId }),
+      FeedEvent.deleteMany({
+        $or: [{ user: userId }, { author: userId }, { itemId: { $in: postIds } }],
+      }),
+    ]);
+
+    // Comments on the deleted posts, and replies that pointed at deleted comments.
+    if (postIds.length) {
+      await Comment.deleteMany({ post: { $in: postIds } });
+    }
+    if (commentIds.length) {
+      await Comment.updateMany(
+        { parentComment: { $in: commentIds } },
+        { $set: { parentComment: null } }
+      );
+    }
+
+    // Recalculate comment counts for posts that lost comments.
+    const deletedPostIds = new Set(postIds.map(String));
+    const keptCommentPosts = commentPostIds.filter((id) => !deletedPostIds.has(String(id)));
+    if (keptCommentPosts.length) {
+      const counts = await Comment.aggregate([
+        { $match: { post: { $in: keptCommentPosts } } },
+        { $group: { _id: '$post', count: { $sum: 1 } } },
+      ]);
+      const countMap = new Map(counts.map((row) => [String(row._id), row.count]));
+      await Post.bulkWrite(
+        keptCommentPosts.map((id) => ({
+          updateOne: {
+            filter: { _id: id },
+            update: { $set: { commentCount: countMap.get(String(id)) || 0 } },
+          },
+        }))
+      );
+    }
+
+    // Remove the account from everyone else's content and social graph.
+    await Promise.all([
+      Message.deleteMany({ sender: userId }),
+      Message.updateMany(
+        { chat: { $in: chats.map((chat) => chat._id) } },
+        { $pull: { seenBy: userId, reactions: { user: userId } } }
+      ),
+      Post.updateMany(
+        { $or: [{ sparks: userId }, { savedBy: userId }, { collaborators: userId }] },
+        { $pull: { sparks: userId, savedBy: userId, collaborators: userId } }
+      ),
+      Story.updateMany(
+        {
+          $or: [
+            { likes: userId },
+            { viewers: userId },
+            { hideFrom: userId },
+            { 'reactions.user': userId },
+          ],
+        },
+        { $pull: { likes: userId, viewers: userId, hideFrom: userId, reactions: { user: userId } } }
+      ),
+      Note.updateMany({ likes: userId }, { $pull: { likes: userId } }),
+      Collection.updateMany({ posts: { $in: postIds } }, { $pull: { posts: { $in: postIds } } }),
+      CircleItem.updateMany(
+        { $or: [{ sparks: userId }, { participants: userId }] },
+        { $pull: { sparks: userId, participants: userId } }
+      ),
+      CircleItem.updateMany({ remixOf: { $in: authoredItems } }, { $set: { remixOf: null } }),
+      CircleDecision.updateMany(
+        { 'ideas.author': userId },
+        { $pull: { ideas: { author: userId } } }
+      ),
+      CircleDecision.updateMany(
+        { 'ideas.ratings.user': userId },
+        { $pull: { 'ideas.$[idea].ratings': { user: userId } } },
+        { arrayFilters: [{ 'idea.ratings.user': userId }] }
+      ),
+      CircleDecision.updateMany(
+        { 'log.actor': userId },
+        { $pull: { log: { actor: userId } } }
+      ),
+      CircleDecision.updateMany({ 'decision.decidedBy': userId }, { $set: { 'decision.decidedBy': null } }),
+      CircleOps.updateMany(
+        { $or: [{ 'failed.member': userId }, { 'history.actor': userId }] },
+        { $pull: { failed: { member: userId }, history: { actor: userId } } }
+      ),
+      User.updateMany(
+        {
+          $or: [
+            { followers: userId },
+            { following: userId },
+            { closeFriends: userId },
+            { mutedStories: userId },
+            { blocked: userId },
+          ],
+        },
+        {
+          $pull: {
+            followers: userId,
+            following: userId,
+            closeFriends: userId,
+            mutedStories: userId,
+            blocked: userId,
+          },
+        }
+      ),
+      UserInterestProfile.deleteMany({ user: userId }),
+      UserInterestProfile.updateMany(
+        {
+          $or: [
+            { hiddenAuthorIds: userId },
+            { 'creatorScores.key': userIdStr },
+            { 'circleScores.key': { $in: removedChatIdStrings } },
+            { 'recentItems.item': { $in: postIds } },
+          ],
+        },
+        {
+          $pull: {
+            hiddenAuthorIds: userId,
+            creatorScores: { key: userIdStr },
+            circleScores: { key: { $in: removedChatIdStrings } },
+            recentItems: { item: { $in: postIds } },
+          },
+        }
+      ),
+      VerificationCode.deleteMany({
+        $or: [
+          { identifier: user.email },
+          { identifier: user.phoneNumber },
+          { 'payload.userId': userIdStr },
+        ],
+      }),
+    ]);
+
+    await User.deleteOne({ _id: userId });
+
+    // Close any live sockets belonging to the deleted account.
+    req.app?.get('io')?.in(`user:${userId}`).disconnectSockets(true);
+
+    return res.json({ message: 'Your account and its content have been deleted.' });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   searchUsers,
   checkUsername,
@@ -869,4 +1200,7 @@ export default {
   joinCircle,
   leaveCircle,
   completeOnboarding,
+  getPublicProfile,
+  exportAccountData,
+  deleteAccount,
 };
