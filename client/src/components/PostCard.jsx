@@ -179,7 +179,8 @@ export default function PostCard({
   const [reportOpen, setReportOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editedText, setEditedText] = useState(post.text || '')
-  const [showComments, setShowComments] = useState(true)
+  const [showComments, setShowComments] = useState(false)
+  const [commentsLoaded, setCommentsLoaded] = useState(false)
   const [comments, setComments] = useState([])
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
@@ -551,7 +552,7 @@ export default function PostCard({
         </button>
         <button
           type="button"
-          onClick={() => { setShowComments(true); loadComments() }}
+          onClick={() => { const next = !showComments; setShowComments(next); if (next) loadComments() }}
           className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
         >
           <MessageCircle size={18} />

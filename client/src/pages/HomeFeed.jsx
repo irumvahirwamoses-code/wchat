@@ -142,8 +142,22 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   // Mute anything containing a hidden word.
   const visiblePosts = useMemo(() => filterHidden(posts, (p) => p.text), [posts])
 
+  // Render in small batches to avoid a big "clack" when new posts arrive.
+  const [renderCount, setRenderCount] = useState(PAGE_SIZE)
+  const renderCountRef = useRef(renderCount)
+  useEffect(() => { renderCountRef.current = renderCount }, [renderCount])
+  useEffect(() => { setRenderCount(PAGE_SIZE) }, [tab, firstLoad ? 1 : 0])
+  useEffect(() => {
+    if (renderCount >= visiblePosts.length) return undefined
+    const id = requestAnimationFrame(() => {
+      setRenderCount((c) => Math.min(visiblePosts.length, c + 4))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [renderCount, visiblePosts.length])
+  const renderedPosts = useMemo(() => visiblePosts.slice(0, renderCount), [visiblePosts, renderCount])
+
   return (
-    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh" ref={scrollRef} onScroll={(e)=>{const el=e.currentTarget; const threshold=Math.max(900, Math.floor(el.clientHeight*1.4)); if(!loadingRef.current && hasMoreRef.current && el.scrollTop+el.clientHeight>=el.scrollHeight-threshold) loadPage(pageRef.current);}}>
+    <div className="h-full min-h-0 overflow-y-auto wchat-hero-mesh" ref={scrollRef} onScroll={(e)=>{const el=e.currentTarget; const threshold=Math.max(1400, Math.floor(el.clientHeight*1.8)); if(!loadingRef.current && hasMoreRef.current && (renderCountRef.current >= visiblePosts.length - 3) && el.scrollTop+el.clientHeight>=el.scrollHeight-threshold) loadPage(pageRef.current);}}>
       <header className="sticky top-0 z-20 border-b border-zinc-800/70 wchat-glass">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div>
@@ -233,7 +247,7 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
           <div className="space-y-4">
             <ParticipationRail onExplore={onExplore} onOpenHub={onOpenHub} />
 
-            {visiblePosts.map((post, index) => (
+            {renderedPosts.map((post, index) => (
               <PostCard
                 key={post._id}
                 post={post}
