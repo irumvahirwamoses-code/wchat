@@ -63,7 +63,7 @@ function Carousel({ items }) {
   if (total === 1) {
     const only = items[0]
     return only.type === 'video' ? (
-      <video controls src={getFileUrl(only.url)} className="max-h-[80vh] w-full bg-black" />
+      <video autoPlay muted playsInline loop src={getFileUrl(only.url)} className="max-h-[80vh] w-full bg-black" / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
     ) : (
       <img
         src={getFileUrl(only.url)}
@@ -78,7 +78,7 @@ function Carousel({ items }) {
   return (
     <div className="relative bg-black">
       {item.type === 'video' ? (
-        <video key={item.url} controls src={getFileUrl(item.url)} className="max-h-[80vh] w-full" />
+        <video key={item.url} autoPlay muted playsInline loop src={getFileUrl(item.url)} className="max-h-[80vh] w-full" / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
       ) : (
           <img
             key={item.url}
@@ -786,7 +786,7 @@ export default function PostCard({
                           src={getFileUrl(item.url)}
                           className="h-16 w-16 rounded-lg object-cover bg-black"
                           muted
-                        />
+                        / onClick={(e)=>{const v=e.currentTarget;if(v.paused)v.play().catch(()=>{});else v.pause();}}>
                       ) : (
                         <img
                           src={getFileUrl(item.url)}
