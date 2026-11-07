@@ -396,4 +396,8 @@ audio {
 @keyframes landing-drift { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(30px,-40px) scale(1.08)} 66%{transform:translate(-25px,20px) scale(.95)} }
 @keyframes landing-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
 @keyframes landing-ping { 0%{transform:scale(1);opacity:.6} 80%,100%{transform:scale(2.2);opacity:0} }
+/* Misc */
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 @media (prefers-reduced-motion: reduce) { .animate-marquee,.animate-drift,.animate-float-slow,.animate-ping-soft,.text-gradient-glow { animation: none !important; } }
