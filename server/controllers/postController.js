@@ -67,13 +67,13 @@ export const getFeed = async (req, res, next) => {
     );
     try {
       if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1) {
-        const external = await fetchExternalPosts({ perPage: 4 });
+        const external = await fetchExternalPosts({ perPage: 6 });
         if (Array.isArray(external) && external.length) {
-          const mixed = [];
-          let ei = 0;
+          if (decorated.length === 0) return res.json({ posts: external.slice(0, limit), page, limit, total: external.length, hasMore: external.length >= limit });
+          const mixed = []; let ei = 0;
           for (let i = 0; i < decorated.length; i++) { mixed.push(decorated[i]); if ((i + 1) % 4 === 0 && external[ei]) mixed.push(external[ei++]); }
           while (ei < external.length && mixed.length < limit) mixed.push(external[ei++]);
-          return res.json({ posts: mixed.slice(0, limit), page, limit, total, hasMore: page * limit < total });
+          return res.json({ posts: mixed.slice(0, limit), page, limit, total, hasMore: true });
         }
       }
     } catch (_e) {}

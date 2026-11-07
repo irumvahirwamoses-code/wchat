@@ -478,6 +478,7 @@ export const listReelsFeed = async (req, res, next) => {
           const queryStr = search && String(search).trim() ? String(search).trim() : undefined;
           const external = await fetchExternalReels({ query: queryStr, perPage: scope === 'discover' ? 12 : 8 });
           if (Array.isArray(external) && external.length) {
+            if (decorated.length === 0) return res.json(external.slice(0, 60));
             const mixed = [];
             let extIdx = 0;
             for (let i = 0; i < decorated.length; i++) {

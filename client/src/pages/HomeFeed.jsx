@@ -69,9 +69,10 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
   }, [])
 
   const loadPage = useCallback(async (target) => {
-    if (target > 1 && !hasMore) return
-    if (loading) return
-    const requestedTab = tab
+    if (target > 1 && !hasMoreRef.current) return
+    if (loadingRef.current) return
+    const requestedTab = tabRef.current
+    loadingRef.current = true
     setLoading(true)
     try {
       let data
@@ -93,23 +94,26 @@ export default function HomeFeed({ onOpenChat, onExplore, onOpenHub }) {
         tabRef.current = data.tab
         setTab(data.tab)
       }
-      const batch = data.posts || []
+      const batch = Array.isArray(data.posts) ? data.posts : (Array.isArray(data) ? data : [])
       setPosts((prev) => {
         if (target === 1) return batch
         const seen = new Set(prev.map((post) => String(post._id)))
         return [...prev, ...batch.filter((post) => !seen.has(String(post._id)))]
       })
-      setHasMore(Boolean(data.hasMore))
+      setHasMore(Boolean(data.hasMore ?? batch.length >= PAGE_SIZE))
       setPage(target + 1)
-    } catch {
+    } catch (err) {
+      console.error('HomeFeed load error', err)
+      if (requestedTab === tabRef.current && target === 1) setPosts([])
       if (requestedTab === tabRef.current) setHasMore(false)
     } finally {
       if (requestedTab === tabRef.current) {
+        loadingRef.current = false
         setLoading(false)
         setFirstLoad(false)
       }
     }
-  }, [tab, loading, hasMore])
+  }, [])
 
   useEffect(() => {
     loadStories()

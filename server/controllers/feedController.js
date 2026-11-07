@@ -90,14 +90,16 @@ export const getHomeFeed = async (req, res, next) => {
     const { candidates, profile, context, pool } = await buildCandidates(req.user, { tab });
     const ranked = rankCandidates(candidates, { profile, context, page, limit });
     try {
-      if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1 && Array.isArray(ranked.posts)) {
-        const external = await fetchExternalPosts({ perPage: 4 });
+      if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1) {
+        const external = await fetchExternalPosts({ perPage: 6 });
         if (Array.isArray(external) && external.length) {
+          const base = Array.isArray(ranked.posts) ? ranked.posts : [];
+          if (base.length === 0) return res.json({ ...ranked, posts: external.slice(0, limit), page, limit, tab, pool, personalisedFeed: !personalisationOff, total: external.length, hasMore: external.length >= limit });
           const mixed = [];
           let ei = 0;
-          for (let i = 0; i < ranked.posts.length; i++) { mixed.push(ranked.posts[i]); if ((i + 1) % 5 === 0 && external[ei]) mixed.push(external[ei++]); }
+          for (let i = 0; i < base.length; i++) { mixed.push(base[i]); if ((i + 1) % 5 === 0 && external[ei]) mixed.push(external[ei++]); }
           while (ei < external.length && mixed.length < limit) mixed.push(external[ei++]);
-          return res.json({ ...ranked, posts: mixed.slice(0, limit), page, limit, tab, pool, personalisedFeed: !personalisationOff });
+          return res.json({ ...ranked, posts: mixed.slice(0, limit), page, limit, tab, pool, personalisedFeed: !personalisationOff, hasMore: true });
         }
       }
     } catch (_e) {}
