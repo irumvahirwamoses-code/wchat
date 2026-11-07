@@ -24,6 +24,8 @@ import toast from 'react-hot-toast'
 import Avatar from './Avatar'
 import ReasonBadge from './ReasonBadge'
 import { useNavigate } from 'react-router-dom'
+import useImpression from '../hooks/useImpression'
+import { trackFeedEvent } from '../utils/feedEvents'
 import api, { getApiError } from '../config/api'
 import { getFileUrl, getId } from '../utils/api'
 import { useAuth } from '../context/AuthContext'
@@ -128,9 +130,21 @@ function Carousel({ items }) {
   )
 }
 
-export default function PostCard({ post, onCommentClick, onDeleted, showReason = false }) {
+export default function PostCard({
+  post,
+  onCommentClick,
+  onDeleted,
+  showReason = false,
+  surface = 'home',
+  position = 0,
+  onNotInterested,
+}) {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isExternal = Boolean(post?.isExternal);
+  const impressionRef = useImpression(isExternal ? null : post._id, { surface, position })
+  const track = (eventType, extra = {}) =>
+    if (!isExternal) trackFeedEvent({ itemId: post._id, eventType, surface, position, ...extra })
   const author = post.author || {}
   const circle = post.circle || null
   const collaborators = post.collaborators || []
@@ -160,6 +174,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   const [pinned, setPinned] = useState(Boolean(post.pinnedAt))
   const [archived, setArchived] = useState(Boolean(post.archivedAt))
   const [busy, setBusy] = useState(false)
+  const [editedItems, setEditedItems] = useState(items)
   const [reportOpen, setReportOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editedText, setEditedText] = useState(post.text || '')
@@ -178,6 +193,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       const { data } = await api.post(`/posts/${post._id}/spark`)
       setSparked(data.sparked)
       setSparks(data.sparkCount)
+      track(data.sparked ? 'spark' : 'unspark')
     } catch (error) {
       toast.error(getApiError(error, 'Could not save your Spark'))
     } finally {
@@ -190,6 +206,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     try {
       const { data } = await api.post(`/posts/${post._id}/save`)
       setSaved(data.saved)
+      track(data.saved ? 'save' : 'unsave')
       toast.success(data.saved ? 'Saved to your collection' : 'Removed from saved')
     } catch (error) {
       setSaved((s) => !s)
@@ -282,6 +299,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       setComments((prev) => [...prev, data])
       setReplyText('')
       setReplyingTo(null)
+      track('comment')
     } catch (error) {
       toast.error(getApiError(error, 'Could not add comment'))
     } finally {
@@ -300,6 +318,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
       setShowSendUser(false)
       setSendToUser('')
       setSendUsers([])
+      track('share')
       toast.success('Post sent')
     } catch (error) {
       toast.error(getApiError(error, 'Could not send post'))
@@ -331,6 +350,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
     setBusy(true)
     try {
       await api.post(`/posts/${post._id}/repost-to-story`, { text: '', music: null })
+      track('share')
       toast.success('Added to your story')
     } catch (error) {
       toast.error(getApiError(error, 'Could not repost to story'))
@@ -361,7 +381,10 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
   }
 
   return (
-    <article className="mx-auto mb-4 w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/60">
+    <article
+      ref={impressionRef}
+      className="mx-auto mb-4 w-full max-w-2xl overflow-hidden rounded-3xl border border-zinc-800/70 bg-zinc-900/55 shadow-card backdrop-blur-sm"
+    >
       <header className="flex items-center gap-3 p-4">
         <button
           type="button"
@@ -469,6 +492,19 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           reason={post.reason}
           code={post.reasonCode}
           detail={post.reasonDetail}
+          onHide={() => {
+            track('not_interested')
+            onNotInterested?.(post._id)
+            toast.success('You will see less like this')
+          }}
+          onMore={() => {
+            track('more_like_this')
+            toast.success('More posts like this')
+          }}
+          onLess={() => {
+            track('less_like_this')
+            toast.success('You will see less like this')
+          }}
         />
       ) : null}
 
@@ -488,13 +524,13 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         </div>
       ) : null}
 
-      <footer className="flex items-center gap-4 px-4 py-2.5">
+      <footer className="flex items-center gap-4 border-t border-zinc-800/50 px-4 py-3">
         <button
           type="button"
-          onClick={spark}
+          onClick={isExternal?undefined:spark}
           disabled={busy}
-          className={`inline-flex items-center gap-1.5 text-xs ${
-            sparked ? 'text-wchat' : 'text-zinc-500 hover:text-zinc-300'
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold transition ${
+            sparked ? 'bg-wchat/10 text-wchat' : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200'
           }`}
         >
           {post.sparks?.slice(0, 2).map((s) => (
@@ -515,7 +551,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         <button
           type="button"
           onClick={() => { setShowComments(true); loadComments() }}
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+          className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
         >
           <MessageCircle size={18} />
           {post.commentCount || 0}
@@ -525,17 +561,17 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             type="button"
             onClick={() => download(items[0])}
             title="Download"
-            className="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition hover:text-zinc-300"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
           >
             <Download size={17} />
           </button>
         ) : null}
         <button
           type="button"
-          onClick={toggleSave}
+          onClick={isExternal?undefined:toggleSave}
           title={saved ? 'Remove from saved' : 'Save'}
-          className={`inline-flex items-center gap-1.5 text-xs ${
-            saved ? 'text-wchat' : 'text-zinc-500 hover:text-zinc-300'
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold transition ${
+            saved ? 'bg-wchat/10 text-wchat' : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200'
           }`}
         >
           <Bookmark size={17} fill={saved ? '#245bff' : 'none'} />
@@ -544,15 +580,15 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
           type="button"
           onClick={() => setShowSendUser(true)}
           title="Send to user"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+          className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
         >
           <Send size={17} />
         </button>
         <button
           type="button"
-          onClick={repostToStoryAction}
+          onClick={isExternal?undefined:repostToStoryAction}
           title="Add to your story"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+          className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
         >
           <RefreshCw size={17} />
         </button>
@@ -561,7 +597,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             type="button"
             onClick={() => setReportOpen(true)}
             title="Report post"
-            className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-rose-300"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-rose-500/10 hover:text-rose-300"
           >
             <Flag size={16} />
           </button>
@@ -569,9 +605,10 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         {canShare ? (
           <button
             type="button"
-            className="ml-auto inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-800/60 hover:text-zinc-200"
             onClick={() => {
               const url = `${window.location.origin}/?p=${post._id}`
+              track('share')
               if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast.success('Link copied'))
               else toast('Copy this link: ' + url)
             }}
@@ -582,7 +619,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
         ) : (
           <span
             title="This creator has turned off sharing"
-            className="ml-auto inline-flex items-center gap-1.5 text-xs text-zinc-700"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold text-zinc-700"
           >
             <Share size={17} />
           </span>
@@ -598,7 +635,7 @@ export default function PostCard({ post, onCommentClick, onDeleted, showReason =
             className="flex items-center gap-1 text-xs font-semibold text-zinc-200 hover:text-zinc-100"
           >
             <MessageCircle size={14} />
-            <span>Comments ({comments.length})</span>
+            <span>Comments ({isExternal?0:comments.length})</span>
           </button>
         </div>
 

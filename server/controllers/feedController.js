@@ -2,6 +2,7 @@ import Post from '../models/Post.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
 import { decorateReason } from '../services/feed/reasons.js';
+import { fetchExternalPosts } from '../services/externalPosts/index.js';
 import {
   buildCandidates,
   rankCandidates,
@@ -56,8 +57,7 @@ async function buildFollowingFilter(user) {
 export const getHomeFeed = async (req, res, next) => {
   try {
     const personalisationOff = req.user.preferences?.personalisedFeed === false;
-    const tab =
-      req.query.tab !== 'following' && !personalisationOff ? 'for_you' : 'following';
+    const tab = req.query.tab !== 'following' && !personalisationOff ? 'for_you' : 'following';
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 10), 30);
 
@@ -71,53 +71,40 @@ export const getHomeFeed = async (req, res, next) => {
         .populate('author', AUTHOR_FIELDS)
         .populate('circle', CIRCLE_FIELDS);
 
-      const decorated = posts.map((post) =>
-        decorateReason(post, {
-          userId: req.user._id,
-          chatIds,
-          following,
-        })
-      );
-
-      return res.json({
-        posts: decorated,
-        page,
-        limit,
-        total,
-        hasMore: page * limit < total,
-        tab,
-        personalisedFeed: !personalisationOff,
-      });
+      const decorated = posts.map((post) => decorateReason(post, { userId: req.user._id, chatIds, following }));
+      try {
+        if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1) {
+          const external = await fetchExternalPosts({ perPage: 4 });
+          if (Array.isArray(external) && external.length) {
+            const mixed = [];
+            let ei = 0;
+            for (let i = 0; i < decorated.length; i++) { mixed.push(decorated[i]); if ((i + 1) % 4 === 0 && external[ei]) mixed.push(external[ei++]); }
+            while (ei < external.length && mixed.length < 30) mixed.push(external[ei++]);
+            return res.json({ posts: mixed.slice(0, limit), page, limit, total, hasMore: page * limit < total, tab, personalisedFeed: !personalisationOff });
+          }
+        }
+      } catch (_e) {}
+      return res.json({ posts: decorated, page, limit, total, hasMore: page * limit < total, tab, personalisedFeed: !personalisationOff });
     }
 
-    const { candidates, profile, context, pool } = await buildCandidates(req.user, {
-      tab,
-    });
-
-    const ranked = rankCandidates(candidates, {
-      profile,
-      context,
-      page,
-      limit,
-    });
-
-    return res.json({
-      ...ranked,
-      page,
-      limit,
-      tab,
-      pool,
-      personalisedFeed: !personalisationOff,
-    });
-  } catch (error) {
-    return next(error);
-  }
+    const { candidates, profile, context, pool } = await buildCandidates(req.user, { tab });
+    const ranked = rankCandidates(candidates, { profile, context, page, limit });
+    try {
+      if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1 && Array.isArray(ranked.posts)) {
+        const external = await fetchExternalPosts({ perPage: 4 });
+        if (Array.isArray(external) && external.length) {
+          const mixed = [];
+          let ei = 0;
+          for (let i = 0; i < ranked.posts.length; i++) { mixed.push(ranked.posts[i]); if ((i + 1) % 5 === 0 && external[ei]) mixed.push(external[ei++]); }
+          while (ei < external.length && mixed.length < limit) mixed.push(external[ei++]);
+          return res.json({ ...ranked, posts: mixed.slice(0, limit), page, limit, tab, pool, personalisedFeed: !personalisationOff });
+        }
+      }
+    } catch (_e) {}
+    return res.json({ ...ranked, page, limit, tab, pool, personalisedFeed: !personalisationOff });
+  } catch (error) { return next(error); }
 };
 
-/**
- * GET /api/feeds/profile — the member's own learned preferences.
- * The raw scores are summarised; nothing here is shared with other members.
- */
 export const getMyProfile = async (req, res, next) => {
   try {
     const profile = await findProfile(req.user._id);

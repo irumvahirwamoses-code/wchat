@@ -1,4 +1,5 @@
 import Post from '../models/Post.js';
+import { fetchExternalPosts } from '../services/externalPosts/index.js';
 import Comment from '../models/Comment.js';
 import Chat from '../models/Chat.js';
 import Message from '../models/Message.js';
@@ -8,6 +9,7 @@ import { notify, resolveMentions } from '../services/notifications.js';
 import { fileUrl } from '../middleware/uploadMiddleware.js';
 import Collection from '../models/Collection.js';
 import { parseJson, asBool } from '../utils/jsonHelpers.js';
+import { decorateReason } from '../services/feed/reasons.js';
 
 const AUTHOR_FIELDS =
   'firstName lastName username profilePicture isOnline lastSeen preferences.allowRemix preferences.allowShareToStories preferences.allowDownload';
@@ -37,64 +39,6 @@ async function buildFeedFilter(user) {
   };
 }
 
-const sameId = (a, b) => String(a?._id || a || '') === String(b?._id || b || '');
-
-/**
- * Explain *why* a post is in someone's stream, the way Instagram's "Why you're
- * seeing this" works.
- *
- *  - `reason`       → the short sentence shown under the post
- *  - `reasonCode`   → stable key the client maps to an icon + explainer
- *  - `reasonDetail` → the specific Circle / person / tag behind the decision
- */
-function decorateReason(post, { userId, chatIds = [], following = [] }) {
-  const plain = post.toObject ? post.toObject({ virtuals: true }) : { ...post };
-
-  if (sameId(plain.author, userId)) {
-    return { ...plain, reason: 'Your post', reasonCode: 'self', reasonDetail: '' };
-  }
-
-  if (plain.circle && chatIds.some((id) => sameId(id, plain.circle))) {
-    const name = plain.circle?.chatName || 'a Circle you joined';
-    return { ...plain, reason: `From ${name}`, reasonCode: 'circle', reasonDetail: name };
-  }
-
-  if (following.some((id) => sameId(id, plain.author))) {
-    const handle = plain.author?.username ? `@${plain.author.username}` : 'this creator';
-    return {
-      ...plain,
-      reason: `Because you follow ${handle}`,
-      reasonCode: 'creator',
-      reasonDetail: handle,
-    };
-  }
-
-  if (plain.tags?.length) {
-    return {
-      ...plain,
-      reason: `Because you're into #${plain.tags[0]}`,
-      reasonCode: 'tag',
-      reasonDetail: `#${plain.tags[0]}`,
-    };
-  }
-
-  if (plain.location) {
-    return {
-      ...plain,
-      reason: `Happening in ${plain.location}`,
-      reasonCode: 'nearby',
-      reasonDetail: plain.location,
-    };
-  }
-
-  return {
-    ...plain,
-    reason: 'Trending in Rwanda right now',
-    reasonCode: 'trending',
-    reasonDetail: '',
-  };
-}
-
 /**
  * GET /api/posts/feed?page=&limit=
  */
@@ -121,23 +65,24 @@ export const getFeed = async (req, res, next) => {
         following: Array.isArray(me?.following) ? me.following : [],
       })
     );
-
-    return res.json({
-      posts: decorated,
-      page,
-      limit,
-      total,
-      hasMore: page * limit < total,
-    });
+    try {
+      if (process.env.POSTS_EXTERNAL_ENABLED !== 'false' && page === 1) {
+        const external = await fetchExternalPosts({ perPage: 4 });
+        if (Array.isArray(external) && external.length) {
+          const mixed = [];
+          let ei = 0;
+          for (let i = 0; i < decorated.length; i++) { mixed.push(decorated[i]); if ((i + 1) % 4 === 0 && external[ei]) mixed.push(external[ei++]); }
+          while (ei < external.length && mixed.length < limit) mixed.push(external[ei++]);
+          return res.json({ posts: mixed.slice(0, limit), page, limit, total, hasMore: page * limit < total });
+        }
+      }
+    } catch (_e) {}
+    return res.json({ posts: decorated, page, limit, total, hasMore: page * limit < total });
   } catch (error) {
     return next(error);
   }
 };
 
-/**
- * GET /api/posts/user/:userId?page=&limit=
- * Timeline posts + posts in common circles (simplified: timeline posts from them + their posts in my circles).
- */
 export const getUserPosts = async (req, res, next) => {
   try {
     const { userId } = req.params;
