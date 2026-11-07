@@ -477,7 +477,7 @@ function RegisterFlow({ onSwitch }) {
                 </select>
                 <ChevronDown size={13} className="icon-right" />
               </div>
-              <input value={form.phoneNumber} onChange={(e) => setForm(prev => ({ ...prev, phoneNumber: e.target.value.replace(/[^d ]/g, '').slice(0, 12) }))} placeholder={phonePlaceholder} inputMode="tel" autoComplete="tel-national" className={inputClass} />
+              <input value={form.phoneNumber} onChange={(e) => setForm(prev => ({ ...prev, phoneNumber: e.target.value.replace(/[^\d ]/g, '').slice(0, 12) }))} placeholder={phonePlaceholder} inputMode="tel" autoComplete="tel-national" className={inputClass} />
             </div>
           </Field>
           <div className="grid grid-cols-2 gap-2">
