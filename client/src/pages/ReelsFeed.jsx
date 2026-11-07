@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  ExternalLink,
   Loader2,
   Maximize2,
   Plus,
@@ -121,11 +122,25 @@ function ReelSlide({ reel, active, onOpenProfile, onOpenHub, onRemixed }) {
       </button>
 
       <div className="absolute bottom-28 right-2 z-10 flex flex-col items-center gap-4 sm:right-3 sm:bottom-24">
-        <RailButton icon={Sparkles} label={String(sparks)} active={sparked} busy={busy} onClick={spark} title={sparked ? 'Remove Spark' : 'Spark'} />
-        <RailButton icon={Bookmark} label="Save" active={saved} onClick={toggleSave} title="Save" />
-        {canShare ? <RailButton icon={Send} label="Drop" onClick={drop} title="Share" /> : null}
-        {canDownload ? <RailButton icon={Download} label="Get" onClick={downloadReel} title="Download" /> : null}
-        {canRemix && reel.isMember ? <RailButton icon={Repeat2} label="Remix" busy={remixBusy} onClick={remix} title="Remix" /> : null}
+        {reel.isExternal ? (
+          <RailButton
+            icon={ExternalLink}
+            label="Open"
+            onClick={() => {
+              const url = reel.source?.url || reel.source?.authorUrl
+              if (url) window.open(url, '_blank', 'noopener,noreferrer')
+            }}
+            title={reel.source?.url ? `View on ${reel.source.provider || 'source'}` : 'Open source'}
+          />
+        ) : (
+          <>
+            <RailButton icon={Sparkles} label={String(sparks)} active={sparked} busy={busy} onClick={spark} title={sparked ? 'Remove Spark' : 'Spark'} />
+            <RailButton icon={Bookmark} label="Save" active={saved} onClick={toggleSave} title="Save" />
+            {canShare ? <RailButton icon={Send} label="Drop" onClick={drop} title="Share" /> : null}
+            {canDownload ? <RailButton icon={Download} label="Get" onClick={downloadReel} title="Download" /> : null}
+            {canRemix && reel.isMember ? <RailButton icon={Repeat2} label="Remix" busy={remixBusy} onClick={remix} title="Remix" /> : null}
+          </>
+        )}
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-10 px-3 pb-5 sm:px-4 sm:pb-6">

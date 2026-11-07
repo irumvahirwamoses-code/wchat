@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  ExternalLink,
   Loader2,
   Repeat2,
   Send,
@@ -109,41 +110,55 @@ function ReelSlide({ reel, active, onOpenProfile, onOpenHub, onRemixed }) {
 
       {/* Action rail */}
       <div className="absolute bottom-36 right-3 flex flex-col items-center gap-4">
-        <RailButton
-          icon={Sparkles}
-          label={String(sparks)}
-          active={sparked}
-          busy={busy}
-          onClick={spark}
-          title={sparked ? 'Remove Spark' : 'Spark'}
-        />
-        <RailButton
-          icon={Bookmark}
-          label="Save"
-          active={saved}
-          onClick={toggleSave}
-          title="Save"
-        />
-        {canShare ? (
-          <RailButton icon={Send} label="Drop" onClick={drop} title="Share" />
-        ) : null}
-        {canDownload ? (
+        {reel.isExternal ? (
           <RailButton
-            icon={Download}
-            label="Save"
-            onClick={downloadReel}
-            title="Download to device"
+            icon={ExternalLink}
+            label="Open"
+            onClick={() => {
+              const url = reel.source?.url || reel.source?.authorUrl
+              if (url) window.open(url, '_blank', 'noopener,noreferrer')
+            }}
+            title={reel.source?.url ? `View on ${reel.source?.provider || 'source'}` : 'Open source'}
           />
-        ) : null}
-        {canRemix && reel.isMember ? (
-          <RailButton
-            icon={Repeat2}
-            label="Remix"
-            busy={remixBusy}
-            onClick={remix}
-            title="Remix this Reel"
-          />
-        ) : null}
+        ) : (
+          <>
+            <RailButton
+              icon={Sparkles}
+              label={String(sparks)}
+              active={sparked}
+              busy={busy}
+              onClick={spark}
+              title={sparked ? 'Remove Spark' : 'Spark'}
+            />
+            <RailButton
+              icon={Bookmark}
+              label="Save"
+              active={saved}
+              onClick={toggleSave}
+              title="Save"
+            />
+            {canShare ? (
+              <RailButton icon={Send} label="Drop" onClick={drop} title="Share" />
+            ) : null}
+            {canDownload ? (
+              <RailButton
+                icon={Download}
+                label="Save"
+                onClick={downloadReel}
+                title="Download to device"
+              />
+            ) : null}
+            {canRemix && reel.isMember ? (
+              <RailButton
+                icon={Repeat2}
+                label="Remix"
+                busy={remixBusy}
+                onClick={remix}
+                title="Remix this Reel"
+              />
+            ) : null}
+          </>
+        )}
       </div>
 
       {/* Caption + Circle */}

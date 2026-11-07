@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import CircleItem, { CIRCLE_ITEM_KINDS } from '../models/CircleItem.js';
+import { fetchExternalReels } from '../services/externalReels/index.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
 import { can, denyFor } from './accessController.js';
@@ -432,12 +433,8 @@ export const remixItem = async (req, res, next) => {
 export const listReelsFeed = async (req, res, next) => {
   try {
     const { search, scope } = req.query;
-
     const chats = await Chat.find({ users: req.user._id }).select('_id').lean();
     const chatIds = chats.map((chat) => chat._id);
-
-    // Reels from the member's Circles, plus any public Reel so that creators can
-    // reach people who don't follow them yet (Instagram's Reels discovery).
     const query = { kind: 'reel' };
     if (scope === 'discover') {
       query.visibility = 'public';
@@ -445,67 +442,56 @@ export const listReelsFeed = async (req, res, next) => {
     } else {
       query.$or = [{ chat: { $in: chatIds } }, { visibility: 'public' }];
     }
-
     if (search && String(search).trim()) {
-      const safe = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const safe = String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\$&');
       const regex = { $regex: safe, $options: 'i' };
       query.$and = [{ $or: [{ title: regex }, { description: regex }, { hashtags: regex }] }];
     }
-
     const reels = await CircleItem.find(query)
       .sort('-createdAt')
       .limit(60)
       .populate('author', AUTHOR_FIELDS)
       .populate('chat', 'chatName groupAvatar joinPolicy');
-
     const me = await User.findById(req.user._id).select('following interests').lean();
     const following = (me?.following || []).map((id) => String(id));
     const interests = (me?.interests || []).map((interest) => String(interest).toLowerCase());
     const myChatIds = chatIds.map((id) => String(id));
-
-    // Explain why each Reel is in the feed, and whether the viewer is already in
-    // its Circle (so the client can offer "Open" instead of "Join").
     const decorated = reels.map((reel) => {
       const plain = reel.toObject({ virtuals: true });
       const circleId = String(plain.chat?._id || plain.chat || '');
       const isMember = myChatIds.includes(circleId);
       const hashtags = (plain.hashtags || []).map((tag) => String(tag).replace(/^#/, ''));
-
-      let reason = 'Trending on Reels';
-      let reasonCode = 'trending';
-      let reasonDetail = '';
-
-      if (isMember) {
-        reason = `From ${plain.chat?.chatName || 'your Circle'}`;
-        reasonCode = 'circle';
-        reasonDetail = plain.chat?.chatName || '';
-      } else if (following.includes(String(plain.author?._id || ''))) {
-        reason = `Because you follow @${plain.author?.username || 'them'}`;
-        reasonCode = 'creator';
-        reasonDetail = `@${plain.author?.username || ''}`;
-      } else {
+      let reason = 'Trending on Reels', reasonCode = 'trending', reasonDetail = '';
+      if (isMember) { reason = 'From ' + (plain.chat?.chatName || 'your Circle'); reasonCode = 'circle'; reasonDetail = plain.chat?.chatName || ''; }
+      else if (following.includes(String(plain.author?._id || ''))) { reason = 'Because you follow @' + (plain.author?.username || 'them'); reasonCode = 'creator'; reasonDetail = '@' + (plain.author?.username || ''); }
+      else {
         const matched = hashtags.find((tag) => interests.includes(tag.toLowerCase()));
-        if (matched) {
-          reason = `Because you're into #${matched}`;
-          reasonCode = 'tag';
-          reasonDetail = `#${matched}`;
-        } else if (hashtags.length) {
-          reason = `Reels tagged #${hashtags[0]}`;
-          reasonCode = 'tag';
-          reasonDetail = `#${hashtags[0]}`;
-        } else {
-          reason = 'Trending on Reels';
-          reasonCode = 'trending';
-        }
+        if (matched) { reason = "Because you're into #" + matched; reasonCode = 'tag'; reasonDetail = '#' + matched; }
+        else if (hashtags.length) { reason = 'Reels tagged #' + hashtags[0]; reasonCode = 'tag'; reasonDetail = '#' + hashtags[0]; }
       }
-
       return { ...plain, reason, reasonCode, reasonDetail, isMember };
     });
-
+    try {
+      if (process.env.REELS_EXTERNAL_ENABLED !== 'false') {
+        const needExternal = scope === 'discover' || decorated.length < 12;
+        if (needExternal) {
+          const queryStr = search && String(search).trim() ? String(search).trim() : undefined;
+          const external = await fetchExternalReels({ query: queryStr, perPage: scope === 'discover' ? 12 : 8 });
+          if (Array.isArray(external) && external.length) {
+            const mixed = [];
+            let extIdx = 0;
+            for (let i = 0; i < decorated.length; i++) {
+              mixed.push(decorated[i]);
+              if ((i + 1) % 3 === 0 && external[extIdx]) mixed.push(external[extIdx++]);
+            }
+            while (extIdx < external.length && mixed.length < 60) mixed.push(external[extIdx++]);
+            return res.json(mixed.slice(0, 60));
+          }
+        }
+      }
+    } catch (_err) { /* never break native feed */ }
     return res.json(decorated);
-  } catch (error) {
-    return next(error);
-  }
+  } catch (error) { return next(error); }
 };
 
 /**
